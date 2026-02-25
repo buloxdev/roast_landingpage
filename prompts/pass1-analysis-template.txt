@@ -1,0 +1,92 @@
+Analyze the landing page using the evidence below and return Pass 1 analysis JSON.
+
+Task context:
+- Product: Roast My Landing Page (v1)
+- This is Pass 1 (analysis), not Pass 2 (UI copy composition)
+- Keep output compatible with the current pass1 placeholder shape, but remain flexible for partial evidence
+
+Inputs
+- Requested URL: {{requested_url}}
+- Normalized URL: {{normalized_url}}
+- Roast mode/tone (if provided): {{roast_mode}}
+- Fetch status: {{fetch_status}}
+- Extraction status: {{extraction_status}}
+- Evidence completeness: {{evidence_completeness_summary}}
+
+Available evidence (may be partial)
+- Page title/meta: {{page_meta_json}}
+- Extracted visible text/copy blocks: {{extracted_copy_json}}
+- CTA/buttons/forms: {{cta_elements_json}}
+- Structure/sections/headings: {{structure_json}}
+- Trust/proof elements: {{trust_elements_json}}
+- Desktop observations: {{desktop_observations_json}}
+- Mobile observations: {{mobile_observations_json}}
+- Raw quoted snippets (if any): {{quoted_snippets_json}}
+- Parsing/errors/blocks: {{errors_json}}
+
+Instructions
+- Return one JSON object only.
+- Include top-level keys: meta, summary, issues, category_scores, quick_wins, rewrite_pack, mobile_roast, positives, share.
+- Preserve analysis fidelity for Pass 2. Do not optimize for presentation polish.
+- Rank issues by conversion impact.
+- Every issue must include: problem, why_it_hurts, fix, and confidence.
+- Quote exact copy when criticizing messaging (if quotes exist).
+- If evidence is partial, keep the structure complete and explicitly mark limitations/low confidence.
+- Do not hallucinate missing page content.
+
+Recommended output shape (flexible, extend as needed)
+{
+  "meta": {
+    "url": "...",
+    "analysis_status": "complete|partial|blocked",
+    "evidence_limits": ["..."],
+    "notes": "..."
+  },
+  "summary": {
+    "overall_score": 0,
+    "score_band": "...",
+    "one_liner": "...",
+    "verdict": "..."
+  },
+  "issues": [
+    {
+      "rank": 1,
+      "category": "CTA quality",
+      "title": "...",
+      "impact": "High|Medium|Low",
+      "confidence": "High|Medium|Low",
+      "problem": "...",
+      "why_it_hurts": "...",
+      "evidence": [
+        { "type": "quote|ui_observation", "value": "..." }
+      ],
+      "fix": "...",
+      "example_rewrite": "..."
+    }
+  ],
+  "category_scores": [
+    {
+      "category": "Clarity of offer",
+      "score_0_to_10": 0,
+      "weight": 20,
+      "note": "..."
+    }
+  ],
+  "quick_wins": ["..."],
+  "rewrite_pack": {
+    "headlines": ["..."],
+    "subheadlines": ["..."],
+    "ctas": ["..."]
+  },
+  "mobile_roast": {
+    "score_0_to_10": 0,
+    "findings": ["..."],
+    "evidence_limits": ["..."]
+  },
+  "positives": ["..."],
+  "share": {
+    "quote": "...",
+    "top_issues": ["..."],
+    "score_text": "..."
+  }
+}
