@@ -1,6 +1,6 @@
 # Context Snapshot (Pause/Resume)
 
-Last updated: 2026-02-24 (Agent A UI shell flow confirmed in workspace)
+Last updated: 2026-02-24 (Agent A shell flow + API contract + prompt pack + fixtures/error copy + validation rules integrated into `main`)
 
 ## What This Project Is
 `Roast My Landing Page` is a tool where users paste a landing page URL and an AI agent gives a brutal-but-useful conversion roast.
@@ -95,10 +95,23 @@ Why:
 - `index.html`
 - `styles.css`
 - `app.js`
+- `context.md`
 - `docs/v1-decisions.md`
+- `docs/api-contract.md`
+- `docs/error-copy.md`
+- `docs/validation-rules.md`
 - `schemas/pass1-analysis-contract.json`
 - `schemas/pass2-ui-contract.json`
 - `fixtures/pass2-ui.sample.json`
+- `fixtures/pass2-ui.partial-evidence.json`
+- `fixtures/pass2-ui.blocked-page.json`
+- `fixtures/pass2-ui.strong-page.json`
+- `fixtures/pass2-ui.mobile-issues.json`
+- `prompts/pass1-system.txt`
+- `prompts/pass1-analysis-template.txt`
+- `prompts/pass2-system.txt`
+- `prompts/pass2-compose-template.txt`
+- `prompts/README.md`
 
 ### Implemented prototype (static frontend app shell + desktop-first results)
 There is now a static frontend v1 shell in `app.js` with screen state and a working flow:
@@ -190,11 +203,11 @@ Note:
 Reason:
 - Backend + real-world extraction/LLM edge cases likely require iteration before hardening
 
-## Prompts / API / Fixtures (Designed in Conversation, Not Yet Added to Repo)
+## Integrated Non-UI Deliverables (Now In Repo)
 
-The following were fully defined in planning, but have not been committed yet:
+The following planning outputs are now implemented and committed on `main`.
 
-### Prompt pack (planned files)
+### Prompt pack (integrated)
 - `prompts/pass1-system.txt`
 - `prompts/pass1-analysis-template.txt`
 - `prompts/pass2-system.txt`
@@ -202,22 +215,22 @@ The following were fully defined in planning, but have not been committed yet:
 - `prompts/README.md`
 
 Status:
-- Content/spec exists in prior discussion
-- Needs to be written into files
+- Added to `main`
+- Intended for direct use in pass1/pass2 model calls
 
-### API contract (planned doc)
+### API contract (integrated)
 - `docs/api-contract.md`
 
-Planned endpoints:
+Endpoints defined:
 - `POST /analyze`
 - `POST /compose`
 - `GET /roast/:id`
 
 Status:
-- Endpoint scope + behavior discussed
-- Doc not yet created
+- Added to `main`
+- Draft merged from recovered agent work (sync-first v1, partial-evidence handling documented)
 
-### Edge-case fixtures + error copy (planned)
+### Edge-case fixtures + error copy (integrated)
 Fixtures:
 - `fixtures/pass2-ui.partial-evidence.json`
 - `fixtures/pass2-ui.blocked-page.json`
@@ -228,14 +241,16 @@ Copy spec:
 - `docs/error-copy.md`
 
 Status:
-- Planned, not yet created
+- Added to `main`
+- Fixtures were sanity-checked by the agent for pass2 contract expectations
 
-### Validation/QA doc (planned)
+### Validation/QA doc (integrated)
 - `docs/validation-rules.md`
 - Optional `scripts/` sanity checker
 
 Status:
-- Planned, not yet created
+- `docs/validation-rules.md` added to `main`
+- Optional helper script was intentionally skipped to keep scope tight
 
 ## Parallel Agent Workflow (Recommended)
 
@@ -264,32 +279,53 @@ Delivered:
 Owns:
 - new `prompts/` folder only
 
-Task:
-- Create pass1/pass2 prompts + README from the agreed prompt designs
+Status:
+- Implemented and integrated into `main`
+
+Delivered:
+- `prompts/pass1-system.txt`
+- `prompts/pass1-analysis-template.txt`
+- `prompts/pass2-system.txt`
+- `prompts/pass2-compose-template.txt`
+- `prompts/README.md`
 
 #### Agent C: API contract doc
 Owns:
 - `docs/api-contract.md`
 
-Task:
-- Write backend API contract (requests, responses, status codes, errors)
+Status:
+- Implemented and integrated into `main`
+
+Delivered:
+- `docs/api-contract.md`
+- Merged from two rescued drafts recovered from temporary Codex worktrees
 
 #### Agent D: Edge-case fixtures + error copy
 Owns:
 - new `fixtures/*.json`
 - `docs/error-copy.md`
 
-Task:
-- Create pass2-shaped edge-case fixtures
-- Write error/loading/retry copy spec
+Status:
+- Implemented and integrated into `main`
+
+Delivered:
+- `fixtures/pass2-ui.partial-evidence.json`
+- `fixtures/pass2-ui.blocked-page.json`
+- `fixtures/pass2-ui.strong-page.json`
+- `fixtures/pass2-ui.mobile-issues.json`
+- `docs/error-copy.md`
 
 #### Agent E: Validation rules / QA spec
 Owns:
 - `docs/validation-rules.md`
 - optional `scripts/` helper
 
-Task:
-- Define pass2 validation rules, fidelity checks, manual QA checklist
+Status:
+- Implemented and integrated into `main`
+
+Delivered:
+- `docs/validation-rules.md`
+- Optional helper script intentionally not added
 
 ### Merge/integration strategy
 1. Merge prompts/docs/fixtures/validation work first (low risk)
@@ -301,25 +337,22 @@ Task:
 ## Next Steps (Recommended Order)
 
 ### Immediate next step
-Start parallel non-UI deliverables while Agent A work is already in place:
-- Prompt pack (`prompts/`)
-- API contract (`docs/api-contract.md`)
-- Edge-case fixtures + error copy
-- Validation rules doc
+Begin backend/UI integration work against the now-merged contracts/prompts/fixtures:
+- Keep the current UI shell flow and replace fake analysis with real API calls behind the same screens
+- Use edge-case fixtures + error copy to implement explicit error/partial-evidence states
 
-### Next parallel tasks (can be done now)
-1. Add `prompts/` files (pass1 + pass2 prompt pack)
-2. Add edge-case pass2 fixtures + `docs/error-copy.md`
-3. Add `docs/api-contract.md`
-4. Add `docs/validation-rules.md`
+### Next implementation tasks (recommended)
+1. Add URL validation + explicit UI error states using `docs/error-copy.md`
+2. Wire `POST /analyze` and `POST /compose` behind the existing analyzing screen
+3. Keep fixture fallback path for offline/frontend-only testing
+4. Add pass2 response validation at the boundary before rendering
+5. Implement persistence/permalink flow (`GET /roast/:id`)
 
-### After parallel work is merged
-1. Add URL validation + explicit error UI states (invalid URL, timeout, blocked, partial evidence)
-2. Replace fake analysis flow with real API-backed path behind the same analyzing screen
-3. Start backend implementation for `POST /analyze` (pass1 output)
-4. Implement `POST /compose` (pass2 output)
-5. Add persistence + shareable permalink (`GET /roast/:id`)
-6. Harden `pass1-analysis` schema after real outputs exist
+### After initial API wiring lands
+1. Harden `pass1-analysis` schema using observed real outputs
+2. Add server-side validation/fidelity checks (pass1 -> pass2 invariants)
+3. Add share page rendering for `GET /roast/:id`
+4. Consider modularizing `app.js` after behavior is stable
 
 ## Known Constraints / Caveats
 - Sandbox blocked local HTTP server port binding during validation, so UI was not visually verified in-browser from this environment
@@ -327,10 +360,15 @@ Start parallel non-UI deliverables while Agent A work is already in place:
 - `app.js` still contains embedded fallback fixture data (in addition to loading `fixtures/pass2-ui.sample.json`)
 
 ## Resume Checklist (for future thread)
-- Confirm what parallel agents delivered (UI shell / prompts / API doc / fixtures / validation)
-- Integrate work without changing `schemas/pass2-ui-contract.json`
+- Confirm `main` contains:
+  - UI shell flow
+  - prompt pack
+  - API contract
+  - edge-case fixtures + error copy
+  - validation rules
+- Preserve `schemas/pass2-ui-contract.json` shape during integration
 - Run sanity checks:
   - JSON parse on all `fixtures/*.json`
   - JSON parse on `schemas/*.json`
   - `node --check` on UI scripts
-- Continue with backend contracts/integration only after UI static flow is stable
+- Proceed with backend/UI integration (replace fake analysis flow with real API path)
