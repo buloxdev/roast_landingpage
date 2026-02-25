@@ -1,0 +1,197 @@
+{
+  "header": {
+    "eyebrow": "Roast Report",
+    "title": "Useful idea, thin evidence trail",
+    "subtitle": "There are enough signals to spot conversion friction, but the page content is sparse and several sections appear hidden behind interaction states.",
+    "score_label": "Roast Score",
+    "score_value": 48,
+    "score_band": "Confusing page, weak conversion foundation",
+    "verdict_chip": "Add clear copy and visible proof"
+  },
+  "summary_panel": {
+    "one_liner": "The page likely offers a scheduling tool, but key conversion elements are too thin or hidden to support a confident buying decision.",
+    "top_problems_title": "Top conversion blockers",
+    "top_3_problems": [
+      "Offer is implied, not explicitly stated",
+      "Proof and pricing details are not visible in crawlable/page-visible content",
+      "CTA path is unclear due to modal-heavy flow"
+    ],
+    "cta_hint": "Clarify the hero and expose proof/pricing in-page before polishing visuals."
+  },
+  "tabs": [
+    { "id": "top-problems", "label": "Top Problems" },
+    { "id": "scores", "label": "Scores" },
+    { "id": "quick-wins", "label": "Quick Wins" },
+    { "id": "rewrites", "label": "Rewrites" },
+    { "id": "mobile", "label": "Mobile" }
+  ],
+  "issue_cards": [
+    {
+      "rank": 1,
+      "category": "Clarity of offer",
+      "title": "The page hints at the product but does not define it fast",
+      "impact_badge": "High",
+      "confidence_badge": "Medium",
+      "problem": "Visitors can infer this is some kind of booking or scheduling tool, but the hero does not clearly state the product category and core outcome.",
+      "why_it_hurts": "When the offer is inferred instead of stated, first-time visitors bounce before they understand whether the page is relevant.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "quote", "value": "Schedule smarter" },
+        { "type": "ui_observation", "value": "No explicit product category (scheduler, booking software, calendar routing) visible in hero copy" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Name the product category and audience in the first headline line, then state the primary outcome in plain language.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": "Appointment scheduling software for service teams that need fewer no-shows and faster bookings."
+    },
+    {
+      "rank": 2,
+      "category": "Trust / proof",
+      "title": "Proof exists weakly or is hidden behind interaction",
+      "impact_badge": "High",
+      "confidence_badge": "Low",
+      "problem": "The visible page content does not provide enough proof detail (results, customer names, or quantified outcomes) to support claims.",
+      "why_it_hurts": "Trust gaps are amplified when the product is not already famous, especially for paid tools that require setup effort.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "ui_observation", "value": "Visible content includes generic benefit language but no clear quantified testimonial or case metric" },
+        { "type": "ui_observation", "value": "Carousel/tab content may contain proof, but only one state was visible during capture" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Promote one quantified testimonial or outcome near the primary CTA and add recognizable customer proof above the fold.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": "Cut scheduling back-and-forth by 62% in the first 30 days for multi-location service teams."
+    },
+    {
+      "rank": 3,
+      "category": "CTA quality",
+      "title": "Primary CTA likely opens a modal without setting expectation",
+      "impact_badge": "Medium",
+      "confidence_badge": "Low",
+      "problem": "The CTA wording is broad and the next step is unclear, which is risky when the page already has limited context.",
+      "why_it_hurts": "Users hesitate more when they do not know whether they are starting a trial, booking a demo, or creating an account.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "quote", "value": "Try it now" },
+        { "type": "ui_observation", "value": "CTA destination/state not fully observable from static page capture" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Use CTA text that describes the next step and commitment level, such as demo, trial, or account setup.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": "Start Free Scheduling Trial"
+    },
+    {
+      "rank": 4,
+      "category": "Structure / hierarchy",
+      "title": "Important buying info appears below visual-heavy sections",
+      "impact_badge": "Medium",
+      "confidence_badge": "Medium",
+      "problem": "The page prioritizes visual modules before answering practical buying questions like setup, integrations, and team fit.",
+      "why_it_hurts": "Visitors with buying intent have to scroll through style-forward sections before finding decision-making information.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "ui_observation", "value": "Early sections emphasize visuals/cards while key details appear later or are not visible" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Move one concise 'How it works' and one proof block higher, directly after the hero.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": ""
+    },
+    {
+      "rank": 5,
+      "category": "Objection handling",
+      "title": "Common objections are not answered in visible content",
+      "impact_badge": "Medium",
+      "confidence_badge": "Low",
+      "problem": "There is little visible messaging around pricing fit, setup time, integrations, or support response expectations.",
+      "why_it_hurts": "Even interested visitors stall when basic risk questions are unanswered near conversion points.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "ui_observation", "value": "No visible FAQ, setup-time claim, or risk-reversal copy near observed CTA" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Add a compact objection block near the CTA with setup time, integration list, pricing qualifier, and support availability.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": ""
+    }
+  ],
+  "score_section": {
+    "title": "Category Scores",
+    "items": [
+      { "category": "Clarity of offer", "score": 4, "weight": 20, "display_score": "4/10 (weight 20)", "note": "Offer is suggested, but the product category and primary outcome are not stated plainly in the hero." },
+      { "category": "Target audience clarity", "score": 4, "weight": 10, "display_score": "4/10 (weight 10)", "note": "Some visual cues imply business use, but the intended buyer is not named clearly." },
+      { "category": "Headline strength", "score": 4, "weight": 10, "display_score": "4/10 (weight 10)", "note": "Headline is punchy but too abstract to do first-screen selling work." },
+      { "category": "CTA quality", "score": 5, "weight": 15, "display_score": "5/10 (weight 15)", "note": "CTA is visible but vague, and the next step appears unclear." },
+      { "category": "Messaging / differentiation", "score": 4, "weight": 15, "display_score": "4/10 (weight 15)", "note": "Differentiation is difficult to assess because detailed claims are sparse or hidden." },
+      { "category": "Trust / proof", "score": 3, "weight": 10, "display_score": "3/10 (weight 10)", "note": "Visible proof is weak or not accessible in the captured page state." },
+      { "category": "Structure / hierarchy", "score": 5, "weight": 10, "display_score": "5/10 (weight 10)", "note": "Layout looks organized, but information hierarchy prioritizes visuals over buying clarity." },
+      { "category": "Objection handling", "score": 3, "weight": 5, "display_score": "3/10 (weight 5)", "note": "Setup and risk questions are not answered in visible high-intent areas." },
+      { "category": "Mobile experience", "score": 5, "weight": 5, "display_score": "5/10 (weight 5)", "note": "Mobile appears usable, but hidden states and dense sections likely increase friction." }
+    ]
+  },
+  "quick_wins_section": {
+    "title": "Quick Wins",
+    "subtitle": "30 minutes or less",
+    "items": [
+      "Rewrite the hero to name the product category, buyer, and outcome in one line.",
+      "Change the CTA to describe the next step (trial, demo, or account setup).",
+      "Add one quantified proof statement above the fold.",
+      "Expose setup time/integration answers near the primary CTA."
+    ]
+  },
+  "rewrite_pack_section": {
+    "title": "Rewrite Pack",
+    "headline_options_label": "Headline options",
+    "headlines": [
+      "Scheduling Software for Service Teams That Need Faster Bookings",
+      "Book More Appointments Without Back-and-Forth Scheduling",
+      "Appointment Routing and Scheduling Built for Busy Service Businesses"
+    ],
+    "subheadline_options_label": "Subheadline options",
+    "subheadlines": [
+      "Let customers book in minutes, route requests to the right team member, and reduce no-shows with automated reminders.",
+      "Built for teams that need a clearer booking flow, fewer missed appointments, and less manual calendar work."
+    ],
+    "cta_options_label": "CTA options",
+    "ctas": [
+      "Start Free Scheduling Trial",
+      "Book a 15-Min Demo",
+      "See How Booking Routing Works",
+      "Create Free Account",
+      "Test the Booking Flow"
+    ]
+  },
+  "mobile_section": {
+    "title": "Mobile Roast",
+    "score_label": "Mobile score",
+    "score": 5,
+    "findings": [
+      "Interactive states (tabs/carousels/modals) may hide proof and details on mobile if only one state is visible",
+      "If the hero stays abstract on mobile, users have even less context before deciding to tap the CTA",
+      "Prioritize a shorter hero plus one visible proof element before scroll"
+    ]
+  },
+  "positives_section": {
+    "title": "What's Working",
+    "items": [
+      "The page appears visually polished and modern, which helps initial credibility.",
+      "There is a visible primary CTA early in the page flow.",
+      "The layout likely supports modular iteration once the copy and proof are strengthened."
+    ]
+  },
+  "share_card_copy": {
+    "title": "Roast My Landing Page",
+    "quote": "Looks polished. Still hard to trust. Your page hides too much of the buying story.",
+    "score_text": "Roast Score: 48/100",
+    "top_issues": [
+      "Implied offer",
+      "Thin proof",
+      "Vague CTA"
+    ],
+    "footer_cta": "Paste your URL. Get roasted."
+  },
+  "footer": {
+    "disclaimer": "AI roast based on visible page content and captured UI states. Hidden/interactive content may reduce evidence confidence.",
+    "rerun_cta": "Roast another page"
+  }
+}

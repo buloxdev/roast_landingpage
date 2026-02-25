@@ -1,0 +1,158 @@
+{
+  "header": {
+    "eyebrow": "Roast Report",
+    "title": "Blocked page, limited roast",
+    "subtitle": "The page could not be meaningfully analyzed because access was blocked (login, bot protection, or permission gate).",
+    "score_label": "Roast Score",
+    "score_value": 12,
+    "score_band": "Confusing page, weak conversion foundation",
+    "verdict_chip": "Unblock access to get a real roast"
+  },
+  "summary_panel": {
+    "one_liner": "This result reflects access failure more than page quality. The analyzer mostly saw a gate/blocked state instead of the landing page.",
+    "top_problems_title": "Top conversion blockers",
+    "top_3_problems": [
+      "Analyzer could not access the actual landing page content",
+      "Hero/CTA/proof sections were not visible",
+      "Result confidence is low because evidence is blocked"
+    ],
+    "cta_hint": "Retry with a public URL or temporary preview link that loads without login/bot checks."
+  },
+  "tabs": [
+    { "id": "top-problems", "label": "Top Problems" },
+    { "id": "scores", "label": "Scores" },
+    { "id": "quick-wins", "label": "Quick Wins" },
+    { "id": "rewrites", "label": "Rewrites" },
+    { "id": "mobile", "label": "Mobile" }
+  ],
+  "issue_cards": [
+    {
+      "rank": 1,
+      "category": "Clarity of offer",
+      "title": "The analyzer saw a gate page instead of your offer",
+      "impact_badge": "High",
+      "confidence_badge": "High",
+      "problem": "The captured page state did not expose the landing page headline, offer, or CTA content.",
+      "why_it_hurts": "Without the actual page, the roast cannot evaluate messaging, structure, or conversion path quality.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "ui_observation", "value": "Visible page state appears to be a login/challenge/permission gate" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Provide a publicly accessible URL or a preview/staging link that loads without authentication or bot protection.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": ""
+    },
+    {
+      "rank": 2,
+      "category": "CTA quality",
+      "title": "Observed CTAs belong to the gate, not the product page",
+      "impact_badge": "High",
+      "confidence_badge": "High",
+      "problem": "Any visible buttons are likely for login, verification, or access recovery rather than the landing page conversion flow.",
+      "why_it_hurts": "CTA analysis would be misleading because it reflects the blocker UI, not your marketing page intent.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "ui_observation", "value": "Visible actions appear related to access, not product evaluation or signup intent" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Retry once the page is accessible so the analyzer can inspect the real primary CTA and next-step wording.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": ""
+    },
+    {
+      "rank": 3,
+      "category": "Trust / proof",
+      "title": "Proof elements were not visible for analysis",
+      "impact_badge": "Medium",
+      "confidence_badge": "High",
+      "problem": "The analyzer could not inspect testimonials, customer logos, or social proof blocks because the page content never loaded.",
+      "why_it_hurts": "Trust/proof scoring is effectively unavailable in a blocked state.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "ui_observation", "value": "Landing page sections were not rendered in the captured state" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Use a direct page URL that resolves to the public landing page without redirects to auth or challenge flows.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": ""
+    }
+  ],
+  "score_section": {
+    "title": "Category Scores",
+    "items": [
+      { "category": "Clarity of offer", "score": 1, "weight": 20, "display_score": "1/10 (weight 20)", "note": "Actual offer content was not visible due to blocked access." },
+      { "category": "Target audience clarity", "score": 1, "weight": 10, "display_score": "1/10 (weight 10)", "note": "Audience targeting could not be assessed from the blocked page state." },
+      { "category": "Headline strength", "score": 1, "weight": 10, "display_score": "1/10 (weight 10)", "note": "Landing page headline was not accessible." },
+      { "category": "CTA quality", "score": 1, "weight": 15, "display_score": "1/10 (weight 15)", "note": "Observed actions were related to access gating, not the product CTA." },
+      { "category": "Messaging / differentiation", "score": 1, "weight": 15, "display_score": "1/10 (weight 15)", "note": "Differentiation could not be evaluated because product messaging was unavailable." },
+      { "category": "Trust / proof", "score": 1, "weight": 10, "display_score": "1/10 (weight 10)", "note": "Proof sections were not visible." },
+      { "category": "Structure / hierarchy", "score": 2, "weight": 10, "display_score": "2/10 (weight 10)", "note": "Only the blocked/gate UI structure was visible, which is not representative." },
+      { "category": "Objection handling", "score": 1, "weight": 5, "display_score": "1/10 (weight 5)", "note": "Objection handling could not be assessed." },
+      { "category": "Mobile experience", "score": 2, "weight": 5, "display_score": "2/10 (weight 5)", "note": "Mobile score reflects blocked-state visibility, not the landing page UX." }
+    ]
+  },
+  "quick_wins_section": {
+    "title": "Quick Wins",
+    "subtitle": "Before re-running",
+    "items": [
+      "Use a publicly accessible URL that loads without login.",
+      "Temporarily disable bot/challenge protection for the preview URL if possible.",
+      "Verify the page resolves directly to the landing page (not an app dashboard redirect)."
+    ]
+  },
+  "rewrite_pack_section": {
+    "title": "Rewrite Pack",
+    "headline_options_label": "Headline options",
+    "headlines": [
+      "Unable to generate headline rewrites from blocked page content",
+      "Provide a public page URL to get rewrite suggestions",
+      "Landing page copy not accessible for rewrite generation"
+    ],
+    "subheadline_options_label": "Subheadline options",
+    "subheadlines": [
+      "Once the page is accessible, the roast can generate targeted headline, subheadline, and CTA alternatives.",
+      "This placeholder rewrite pack exists only to preserve the pass2 UI contract in blocked-page scenarios."
+    ],
+    "cta_options_label": "CTA options",
+    "ctas": [
+      "Retry With Public URL",
+      "Open Public Preview",
+      "Disable Login Gate",
+      "Use Staging Share Link",
+      "Run Roast Again"
+    ]
+  },
+  "mobile_section": {
+    "title": "Mobile Roast",
+    "score_label": "Mobile score",
+    "score": 2,
+    "findings": [
+      "Mobile analysis was blocked by the same access gate",
+      "Observed mobile UI may reflect a challenge/login screen rather than the landing page",
+      "Use a public preview link to get meaningful mobile conversion feedback"
+    ]
+  },
+  "positives_section": {
+    "title": "What's Working",
+    "items": [
+      "The system detected and reported a blocked-state scenario instead of inventing detailed page feedback.",
+      "Retry guidance is clear and actionable for obtaining a valid roast."
+    ]
+  },
+  "share_card_copy": {
+    "title": "Roast My Landing Page",
+    "quote": "Roast blocked. We saw the gate, not the page.",
+    "score_text": "Roast Score: 12/100",
+    "top_issues": [
+      "Access blocked",
+      "No page content",
+      "Low evidence"
+    ],
+    "footer_cta": "Paste a public URL. Get roasted."
+  },
+  "footer": {
+    "disclaimer": "Blocked-page result. Scores and findings are placeholders based on access failure, not a full landing page analysis.",
+    "rerun_cta": "Try another URL"
+  }
+}
