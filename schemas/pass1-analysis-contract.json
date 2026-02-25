@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pass1AnalysisContract",
+  "type": "object",
+  "required": [
+    "meta",
+    "summary",
+    "issues",
+    "category_scores",
+    "quick_wins",
+    "rewrite_pack",
+    "mobile_roast",
+    "positives",
+    "share"
+  ],
+  "properties": {
+    "meta": { "type": "object" },
+    "summary": { "type": "object" },
+    "issues": { "type": "array" },
+    "category_scores": { "type": "array" },
+    "quick_wins": { "type": "array" },
+    "rewrite_pack": { "type": "object" },
+    "mobile_roast": { "type": "object" },
+    "positives": { "type": "array" },
+    "share": { "type": "object" }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,187 @@
+{
+  "header": {
+    "eyebrow": "Roast Report",
+    "title": "Polished design, fuzzy pitch",
+    "subtitle": "Your page looks credible, but the hero copy makes people work too hard to understand the offer.",
+    "score_label": "Roast Score",
+    "score_value": 56,
+    "score_band": "Major clarity/messaging gaps",
+    "verdict_chip": "Fix the hero first"
+  },
+  "summary_panel": {
+    "one_liner": "The page looks credible, but the hero copy is too vague to explain what the product actually does in 5 seconds.",
+    "top_problems_title": "Top conversion blockers",
+    "top_3_problems": [
+      "Hero headline is vague and outcome-light",
+      "Primary CTA is generic and weakly matched to intent",
+      "Differentiation is buried under feature language"
+    ],
+    "cta_hint": "Start with the hero headline + CTA. That is your fastest conversion lift."
+  },
+  "tabs": [
+    { "id": "top-problems", "label": "Top Problems" },
+    { "id": "scores", "label": "Scores" },
+    { "id": "quick-wins", "label": "Quick Wins" },
+    { "id": "rewrites", "label": "Rewrites" },
+    { "id": "mobile", "label": "Mobile" }
+  ],
+  "issue_cards": [
+    {
+      "rank": 1,
+      "category": "Clarity of offer",
+      "title": "Your hero headline hides the product",
+      "impact_badge": "High",
+      "confidence_badge": "High",
+      "problem": "The hero headline does not clearly say what the product is or who it is for.",
+      "why_it_hurts": "Visitors cannot quickly self-qualify, which increases bounce risk before they reach your stronger sections.",
+      "evidence_label": "Evidence",
+      "evidence": [{ "type": "quote", "value": "Turn feedback into momentum" }],
+      "fix_label": "Fix",
+      "fix": "State the product category, audience, and primary outcome directly in the hero headline.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": "Collect and analyze customer feedback automatically so product teams can ship better features faster."
+    },
+    {
+      "rank": 2,
+      "category": "CTA quality",
+      "title": "CTA says nothing about the next step",
+      "impact_badge": "High",
+      "confidence_badge": "High",
+      "problem": "The primary CTA is generic and does not communicate what happens next.",
+      "why_it_hurts": "Generic CTAs create friction because users must guess the commitment level and outcome.",
+      "evidence_label": "Evidence",
+      "evidence": [{ "type": "quote", "value": "Get Started" }],
+      "fix_label": "Fix",
+      "fix": "Replace the CTA with a specific action that matches buyer intent and reduces ambiguity.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": "Start Free Feedback Audit"
+    },
+    {
+      "rank": 3,
+      "category": "Messaging / differentiation",
+      "title": "Benefits are broad, not differentiated",
+      "impact_badge": "High",
+      "confidence_badge": "Medium",
+      "problem": "The page leans on broad feature claims but does not explain why this is better than alternatives.",
+      "why_it_hurts": "Without clear differentiation, visitors compare you on price or leave to keep researching.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "quote", "value": "AI-powered insights for modern teams" },
+        { "type": "quote", "value": "Built for speed and scale" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Add a clear 'why us' statement with a concrete differentiator (speed, setup time, data sources, accuracy, or workflow fit).",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": "Connect Slack, Intercom, and email in 10 minutes, then get deduplicated feedback themes your PMs can act on the same day."
+    },
+    {
+      "rank": 4,
+      "category": "Objection handling",
+      "title": "You leave buying questions unanswered",
+      "impact_badge": "Medium",
+      "confidence_badge": "Medium",
+      "problem": "Common buyer objections (setup effort, integrations, pricing fit, data quality) are not handled early.",
+      "why_it_hurts": "Visitors with interest still hesitate because they cannot answer basic purchase-risk questions from the page.",
+      "evidence_label": "Evidence",
+      "evidence": [{ "type": "ui_observation", "value": "No visible FAQ or risk-reversal near pricing/CTA sections" }],
+      "fix_label": "Fix",
+      "fix": "Add a short objection-handling block near the CTA covering setup time, integrations, and trial expectations.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": ""
+    },
+    {
+      "rank": 5,
+      "category": "Mobile experience",
+      "title": "Mobile hero is doing too much before the CTA",
+      "impact_badge": "Medium",
+      "confidence_badge": "High",
+      "problem": "On mobile, the hero text wraps into a dense block and the primary CTA appears low in the viewport.",
+      "why_it_hurts": "Mobile users get less immediate clarity and may not see the action quickly enough to convert.",
+      "evidence_label": "Evidence",
+      "evidence": [{ "type": "ui_observation", "value": "Primary CTA not fully visible on initial mobile viewport without scrolling" }],
+      "fix_label": "Fix",
+      "fix": "Reduce hero copy length, tighten spacing, and move the CTA higher (or add a sticky mobile CTA).",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": ""
+    }
+  ],
+  "score_section": {
+    "title": "Category Scores",
+    "items": [
+      { "category": "Clarity of offer", "score": 6, "weight": 20, "display_score": "6/10 (weight 20)", "note": "The page hints at the value but does not clearly define the product in the hero." },
+      { "category": "Target audience clarity", "score": 6, "weight": 10, "display_score": "6/10 (weight 10)", "note": "It appears aimed at product teams, but the hero does not name them directly." },
+      { "category": "Headline strength", "score": 5, "weight": 10, "display_score": "5/10 (weight 10)", "note": "Short and punchy, but too abstract to carry first-impression clarity." },
+      { "category": "CTA quality", "score": 5, "weight": 15, "display_score": "5/10 (weight 15)", "note": "Visible CTA exists, but wording is generic and low-specificity." },
+      { "category": "Messaging / differentiation", "score": 5, "weight": 15, "display_score": "5/10 (weight 15)", "note": "Benefits are implied, but clear differentiation is not stated early." },
+      { "category": "Trust / proof", "score": 6, "weight": 10, "display_score": "6/10 (weight 10)", "note": "Some logos/testimonials are present, but impact would improve with quantified outcomes." },
+      { "category": "Structure / hierarchy", "score": 7, "weight": 10, "display_score": "7/10 (weight 10)", "note": "The page flows logically and is mostly scannable on desktop." },
+      { "category": "Objection handling", "score": 4, "weight": 5, "display_score": "4/10 (weight 5)", "note": "Too little risk-reduction messaging near conversion points." },
+      { "category": "Mobile experience", "score": 5, "weight": 5, "display_score": "5/10 (weight 5)", "note": "Usable, but hero density and CTA placement weaken first-screen performance." }
+    ]
+  },
+  "quick_wins_section": {
+    "title": "Quick Wins",
+    "subtitle": "30 minutes or less",
+    "items": [
+      "Rewrite the hero headline to name the product and target user explicitly.",
+      "Change the primary CTA from 'Get Started' to a specific action with clear next step.",
+      "Add a one-line differentiator under the hero subheadline.",
+      "Add a compact FAQ/risk-reversal block near the main CTA."
+    ]
+  },
+  "rewrite_pack_section": {
+    "title": "Rewrite Pack",
+    "headline_options_label": "Headline options",
+    "headlines": [
+      "Customer Feedback Analysis for Product Teams, Automated",
+      "Turn Customer Feedback Into Prioritized Product Decisions",
+      "Automatically Collect and Analyze Feedback Across Your Support Channels"
+    ],
+    "subheadline_options_label": "Subheadline options",
+    "subheadlines": [
+      "Connect your feedback sources, surface recurring themes, and give your team a clear view of what to build next.",
+      "Built for product teams that need faster insight, less manual tagging, and clearer prioritization."
+    ],
+    "cta_options_label": "CTA options",
+    "ctas": [
+      "Start Free Feedback Audit",
+      "Analyze My Feedback Pipeline",
+      "See a Live Demo",
+      "Start Free Trial",
+      "Connect My Feedback Sources"
+    ]
+  },
+  "mobile_section": {
+    "title": "Mobile Roast",
+    "score_label": "Mobile score",
+    "score": 5,
+    "findings": [
+      "Primary CTA not fully visible on initial mobile viewport without scrolling",
+      "Hero copy wraps into a dense paragraph, reducing scan speed",
+      "Consider a sticky mobile CTA after the hero to keep action visible"
+    ]
+  },
+  "positives_section": {
+    "title": "What's Working",
+    "items": [
+      "Visual design and spacing create a credible first impression on desktop.",
+      "Section flow is logical, with a clear progression from problem to features to proof.",
+      "The page avoids excessive clutter and is reasonably scannable."
+    ]
+  },
+  "share_card_copy": {
+    "title": "Roast My Landing Page",
+    "quote": "Looks legit. Still too vague. Your hero makes visitors guess what you actually do.",
+    "score_text": "Roast Score: 56/100",
+    "top_issues": [
+      "Vague hero headline",
+      "Generic CTA",
+      "Weak differentiation"
+    ],
+    "footer_cta": "Paste your URL. Get roasted."
+  },
+  "footer": {
+    "disclaimer": "AI roast based on page content and viewport observations. Review recommendations before shipping changes.",
+    "rerun_cta": "Roast another page"
+  }
+}

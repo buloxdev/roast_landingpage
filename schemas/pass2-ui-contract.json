@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pass2UiContract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "header",
+    "summary_panel",
+    "tabs",
+    "issue_cards",
+    "score_section",
+    "quick_wins_section",
+    "rewrite_pack_section",
+    "mobile_section",
+    "positives_section",
+    "share_card_copy",
+    "footer"
+  ],
+  "properties": {
+    "header": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eyebrow",
+        "title",
+        "subtitle",
+        "score_label",
+        "score_value",
+        "score_band",
+        "verdict_chip"
+      ],
+      "properties": {
+        "eyebrow": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "subtitle": { "type": "string", "minLength": 1 },
+        "score_label": { "type": "string", "minLength": 1 },
+        "score_value": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "score_band": { "type": "string", "minLength": 1 },
+        "verdict_chip": { "type": "string", "minLength": 1 }
+      }
+    },
+    "summary_panel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "one_liner",
+        "top_problems_title",
+        "top_3_problems",
+        "cta_hint"
+      ],
+      "properties": {
+        "one_liner": { "type": "string", "minLength": 1 },
+        "top_problems_title": { "type": "string", "minLength": 1 },
+        "top_3_problems": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "cta_hint": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tabs": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "issue_cards": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rank",
+          "category",
+          "title",
+          "impact_badge",
+          "confidence_badge",
+          "problem",
+          "why_it_hurts",
+          "evidence_label",
+          "evidence",
+          "fix_label",
+          "fix",
+          "rewrite_label",
+          "example_rewrite"
+        ],
+        "properties": {
+          "rank": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "category": { "type": "string", "minLength": 1 },
+          "title": { "type": "string", "minLength": 1 },
+          "impact_badge": {
+            "type": "string",
+            "enum": ["High", "Medium", "Low"]
+          },
+          "confidence_badge": {
+            "type": "string",
+            "enum": ["High", "Medium", "Low"]
+          },
+          "problem": { "type": "string", "minLength": 1 },
+          "why_it_hurts": { "type": "string", "minLength": 1 },
+          "evidence_label": { "type": "string", "minLength": 1 },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "value"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["quote", "ui_observation"]
+                },
+                "value": { "type": "string", "minLength": 1 }
+              }
+            }
+          },
+          "fix_label": { "type": "string", "minLength": 1 },
+          "fix": { "type": "string", "minLength": 1 },
+          "rewrite_label": { "type": "string", "minLength": 1 },
+          "example_rewrite": { "type": "string" }
+        }
+      }
+    },
+    "score_section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "items"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "items": {
+          "type": "array",
+          "minItems": 9,
+          "maxItems": 9,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["category", "score", "weight", "display_score", "note"],
+            "properties": {
+              "category": {
+                "type": "string",
+                "enum": [
+                  "Clarity of offer",
+                  "Target audience clarity",
+                  "Headline strength",
+                  "CTA quality",
+                  "Messaging / differentiation",
+                  "Trust / proof",
+                  "Structure / hierarchy",
+                  "Objection handling",
+                  "Mobile experience"
+                ]
+              },
+              "score": { "type": "integer", "minimum": 0, "maximum": 10 },
+              "weight": {
+                "type": "integer",
+                "enum": [20, 10, 15, 5]
+              },
+              "display_score": { "type": "string", "minLength": 1 },
+              "note": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "quick_wins_section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "subtitle", "items"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "subtitle": { "type": "string", "minLength": 1 },
+        "items": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 5,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "rewrite_pack_section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "headline_options_label",
+        "headlines",
+        "subheadline_options_label",
+        "subheadlines",
+        "cta_options_label",
+        "ctas"
+      ],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "headline_options_label": { "type": "string", "minLength": 1 },
+        "headlines": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "subheadline_options_label": { "type": "string", "minLength": 1 },
+        "subheadlines": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "cta_options_label": { "type": "string", "minLength": 1 },
+        "ctas": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "mobile_section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "score_label", "score", "findings"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "score_label": { "type": "string", "minLength": 1 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "findings": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "positives_section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "items"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "items": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "share_card_copy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "quote", "score_text", "top_issues", "footer_cta"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "quote": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "score_text": { "type": "string", "minLength": 1 },
+        "top_issues": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "footer_cta": { "type": "string", "minLength": 1 }
+      }
+    },
+    "footer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disclaimer", "rerun_cta"],
+      "properties": {
+        "disclaimer": { "type": "string", "minLength": 1 },
+        "rerun_cta": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
