@@ -1,0 +1,163 @@
+{
+  "header": {
+    "eyebrow": "Roast Report",
+    "title": "Strong page, mostly optimization work",
+    "subtitle": "The offer is clear, the CTA path is easy to understand, and trust signals are solid. Most gains now come from sharper differentiation and tighter messaging.",
+    "score_label": "Roast Score",
+    "score_value": 91,
+    "score_band": "Strong page, mostly optimization",
+    "verdict_chip": "Optimize, don't rebuild"
+  },
+  "summary_panel": {
+    "one_liner": "This page already explains the product and next step well; the biggest upside is improving specificity and testing stronger proof framing.",
+    "top_problems_title": "Top conversion blockers",
+    "top_3_problems": [
+      "Differentiation could be more specific vs alternatives",
+      "Headline is clear but not maximally outcome-driven",
+      "Proof is strong but lightly quantified"
+    ],
+    "cta_hint": "Test sharper differentiator language before making major layout changes."
+  },
+  "tabs": [
+    { "id": "top-problems", "label": "Top Problems" },
+    { "id": "scores", "label": "Scores" },
+    { "id": "quick-wins", "label": "Quick Wins" },
+    { "id": "rewrites", "label": "Rewrites" },
+    { "id": "mobile", "label": "Mobile" }
+  ],
+  "issue_cards": [
+    {
+      "rank": 1,
+      "category": "Messaging / differentiation",
+      "title": "Your value prop is clear, but the 'why you' claim is still broad",
+      "impact_badge": "Medium",
+      "confidence_badge": "High",
+      "problem": "The page communicates what the product does, but the differentiator language still sounds similar to category competitors.",
+      "why_it_hurts": "When several tools appear equivalent, buyers delay decisions or compare on price instead of fit and speed-to-value.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "quote", "value": "The easiest way to manage client onboarding" },
+        { "type": "quote", "value": "Built for growing teams" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Add one concrete differentiator tied to setup time, workflow automation depth, or measurable customer outcome.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": "Set up automated client onboarding in one afternoon, with templates and approvals your ops team can run without engineering help."
+    },
+    {
+      "rank": 2,
+      "category": "Headline strength",
+      "title": "Headline is clear but leaves outcome intensity on the table",
+      "impact_badge": "Medium",
+      "confidence_badge": "High",
+      "problem": "The headline names the product category well, but it could do more to promise the primary business outcome.",
+      "why_it_hurts": "Clear headlines convert better than vague ones, but outcome-driven headlines can still improve qualified click-through and demo intent.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "quote", "value": "Client onboarding software for agencies" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Keep the category clarity and add the primary result (faster launch, fewer delays, fewer dropped handoffs).",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": "Client onboarding software for agencies that want faster launches and fewer handoff delays."
+    },
+    {
+      "rank": 3,
+      "category": "Trust / proof",
+      "title": "Proof is credible, but quantified outcomes are underused",
+      "impact_badge": "Low",
+      "confidence_badge": "Medium",
+      "problem": "You show logos and testimonials, but there are not enough quantified before/after results near the conversion path.",
+      "why_it_hurts": "Quantified proof helps skeptical buyers justify action sooner, especially for higher-ticket or process-changing tools.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "ui_observation", "value": "Customer logos and testimonial cards are visible near mid-page" },
+        { "type": "quote", "value": "We finally standardized onboarding across the team" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Add one quantified result (time saved, cycle-time reduction, or completion rate lift) above or beside the primary CTA.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": ""
+    }
+  ],
+  "score_section": {
+    "title": "Category Scores",
+    "items": [
+      { "category": "Clarity of offer", "score": 10, "weight": 20, "display_score": "10/10 (weight 20)", "note": "The hero clearly states product category and use case with minimal ambiguity." },
+      { "category": "Target audience clarity", "score": 9, "weight": 10, "display_score": "9/10 (weight 10)", "note": "The page names agencies and reinforces team context consistently." },
+      { "category": "Headline strength", "score": 8, "weight": 10, "display_score": "8/10 (weight 10)", "note": "Clear and functional, with room for a stronger outcome promise." },
+      { "category": "CTA quality", "score": 9, "weight": 15, "display_score": "9/10 (weight 15)", "note": "CTA is specific and the next step appears obvious and low-friction." },
+      { "category": "Messaging / differentiation", "score": 8, "weight": 15, "display_score": "8/10 (weight 15)", "note": "Strong messaging overall, but differentiators can be more concrete vs alternatives." },
+      { "category": "Trust / proof", "score": 8, "weight": 10, "display_score": "8/10 (weight 10)", "note": "Credible proof is present; quantified impact would raise confidence further." },
+      { "category": "Structure / hierarchy", "score": 9, "weight": 10, "display_score": "9/10 (weight 10)", "note": "Excellent scan flow and section sequencing for desktop evaluation." },
+      { "category": "Objection handling", "score": 8, "weight": 5, "display_score": "8/10 (weight 5)", "note": "Pricing/setup concerns are addressed reasonably well, with minor room for stronger risk reversal." },
+      { "category": "Mobile experience", "score": 8, "weight": 5, "display_score": "8/10 (weight 5)", "note": "Mobile appears strong and readable, though some proof cards may stack long." }
+    ]
+  },
+  "quick_wins_section": {
+    "title": "Quick Wins",
+    "subtitle": "High leverage optimization",
+    "items": [
+      "Add one quantified customer outcome near the hero CTA.",
+      "Tighten the hero headline to include a stronger business result.",
+      "Add a short 'why choose us vs generic PM tools' comparison line.",
+      "Test a CTA variant that highlights time-to-value."
+    ]
+  },
+  "rewrite_pack_section": {
+    "title": "Rewrite Pack",
+    "headline_options_label": "Headline options",
+    "headlines": [
+      "Client Onboarding Software for Agencies That Want Faster Launches",
+      "Standardize Client Onboarding Across Your Agency in Days, Not Weeks",
+      "Run Every Client Onboarding With the Same Clear Process and Fewer Delays"
+    ],
+    "subheadline_options_label": "Subheadline options",
+    "subheadlines": [
+      "Use templates, approvals, and automated reminders to keep onboarding on track from kickoff to handoff.",
+      "Built for agencies that need predictable onboarding, clearer ownership, and fewer client-side stalls."
+    ],
+    "cta_options_label": "CTA options",
+    "ctas": [
+      "Book a Live Demo",
+      "Start Free Agency Trial",
+      "See the Onboarding Workflow",
+      "Get My Team Setup",
+      "Compare Plans"
+    ]
+  },
+  "mobile_section": {
+    "title": "Mobile Roast",
+    "score_label": "Mobile score",
+    "score": 8,
+    "findings": [
+      "Hero and CTA remain clear on mobile, which preserves intent capture",
+      "Proof sections likely stack longer on smaller screens, so keep key proof first",
+      "A sticky CTA is optional here, not urgent"
+    ]
+  },
+  "positives_section": {
+    "title": "What's Working",
+    "items": [
+      "The product category and target audience are obvious immediately.",
+      "CTA language is specific and aligns with buyer intent.",
+      "Section flow supports scanning and decision-making without unnecessary friction.",
+      "Proof and objection-handling are already stronger than most early-stage landing pages."
+    ]
+  },
+  "share_card_copy": {
+    "title": "Roast My Landing Page",
+    "quote": "This is good. Now tighten the 'why you' and quantify proof.",
+    "score_text": "Roast Score: 91/100",
+    "top_issues": [
+      "Broad differentiator",
+      "Headline could push outcome",
+      "More quantified proof"
+    ],
+    "footer_cta": "Paste your URL. Get roasted."
+  },
+  "footer": {
+    "disclaimer": "AI roast based on page content and viewport observations. Even strong pages benefit from testing, not assumptions.",
+    "rerun_cta": "Roast another page"
+  }
+}

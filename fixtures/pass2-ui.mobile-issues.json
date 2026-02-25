@@ -1,0 +1,198 @@
+{
+  "header": {
+    "eyebrow": "Roast Report",
+    "title": "Desktop is solid, mobile leaks conversions",
+    "subtitle": "The messaging and structure are decent overall, but mobile layout and CTA visibility create avoidable friction on first screen.",
+    "score_label": "Roast Score",
+    "score_value": 67,
+    "score_band": "Major clarity/messaging gaps",
+    "verdict_chip": "Fix mobile first-screen flow"
+  },
+  "summary_panel": {
+    "one_liner": "This page is close on desktop, but mobile users have to scroll through too much content before they understand the offer and find the primary action.",
+    "top_problems_title": "Top conversion blockers",
+    "top_3_problems": [
+      "Mobile hero pushes CTA below the fold",
+      "Headline and subheadline stack into a dense mobile block",
+      "Sticky elements and popups compete for viewport space on mobile"
+    ],
+    "cta_hint": "You likely have more upside from mobile layout fixes than another headline rewrite."
+  },
+  "tabs": [
+    { "id": "top-problems", "label": "Top Problems" },
+    { "id": "scores", "label": "Scores" },
+    { "id": "quick-wins", "label": "Quick Wins" },
+    { "id": "rewrites", "label": "Rewrites" },
+    { "id": "mobile", "label": "Mobile" }
+  ],
+  "issue_cards": [
+    {
+      "rank": 1,
+      "category": "Mobile experience",
+      "title": "Primary CTA is not visible quickly on mobile",
+      "impact_badge": "High",
+      "confidence_badge": "High",
+      "problem": "On mobile, the hero stack (announcement bar, headline, subheadline, image, badges) pushes the primary CTA below the initial viewport.",
+      "why_it_hurts": "Users cannot act when intent is highest, which reduces tap-through and increases early drop-off.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "ui_observation", "value": "Primary CTA appears below initial mobile viewport without scrolling" },
+        { "type": "ui_observation", "value": "Top-of-page utility bar consumes vertical space before hero content" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Reduce first-screen height and move a clear primary CTA higher, or add a sticky mobile CTA after initial scroll.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": ""
+    },
+    {
+      "rank": 2,
+      "category": "Structure / hierarchy",
+      "title": "Mobile first screen contains too many competing elements",
+      "impact_badge": "High",
+      "confidence_badge": "High",
+      "problem": "Multiple badges, trust chips, and visual modules compete with the main message before the user understands the page.",
+      "why_it_hurts": "Crowded first screens slow comprehension and reduce the chance that users reach the intended CTA with confidence.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "ui_observation", "value": "Hero includes stacked chips/badges and a large visual before CTA on mobile" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Trim non-essential hero elements on mobile and keep one proof cue plus the CTA above the fold.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": ""
+    },
+    {
+      "rank": 3,
+      "category": "Headline strength",
+      "title": "Good headline becomes hard to scan when wrapped on mobile",
+      "impact_badge": "Medium",
+      "confidence_badge": "High",
+      "problem": "The headline likely works on desktop, but line breaks and adjacent copy create a heavy text block on smaller screens.",
+      "why_it_hurts": "Mobile users scan in shorter bursts; dense hero text reduces immediate understanding and action confidence.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "quote", "value": "Close your books in half the time with automated reconciliation" },
+        { "type": "ui_observation", "value": "Headline/subheadline wrap into a dense multi-line stack on mobile" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Shorten the mobile headline variant or trim the subheadline so the key outcome is visible in 2-3 lines.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": "Close your books faster with automated reconciliation"
+    },
+    {
+      "rank": 4,
+      "category": "CTA quality",
+      "title": "Secondary actions compete with the primary mobile CTA",
+      "impact_badge": "Medium",
+      "confidence_badge": "Medium",
+      "problem": "Secondary links and utility actions appear prominent enough on mobile to distract from the main conversion path.",
+      "why_it_hurts": "Mobile attention is narrower; competing actions pull taps away from the primary conversion event.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "ui_observation", "value": "Multiple buttons/links in hero/navigation area compete visually on mobile" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Visually prioritize one primary action on mobile and demote secondary actions to text links or lower placement.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": ""
+    },
+    {
+      "rank": 5,
+      "category": "Objection handling",
+      "title": "Mobile users may miss reassurance copy before tapping",
+      "impact_badge": "Low",
+      "confidence_badge": "Medium",
+      "problem": "Risk-reducing details (trial terms, integrations, data security notes) appear later, which matters more on mobile where scroll depth is lower.",
+      "why_it_hurts": "Users who need one reassurance cue may abandon before reaching deeper sections.",
+      "evidence_label": "Evidence",
+      "evidence": [
+        { "type": "ui_observation", "value": "Reassurance content appears below multiple product/feature sections on mobile" }
+      ],
+      "fix_label": "Fix",
+      "fix": "Bring one concise reassurance line (e.g., no credit card, quick setup, secure integrations) closer to the mobile CTA.",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": ""
+    }
+  ],
+  "score_section": {
+    "title": "Category Scores",
+    "items": [
+      { "category": "Clarity of offer", "score": 7, "weight": 20, "display_score": "7/10 (weight 20)", "note": "Offer is mostly clear, though mobile presentation delays clarity." },
+      { "category": "Target audience clarity", "score": 7, "weight": 10, "display_score": "7/10 (weight 10)", "note": "Audience is reasonably clear in copy and examples." },
+      { "category": "Headline strength", "score": 7, "weight": 10, "display_score": "7/10 (weight 10)", "note": "Headline is strong on desktop but less effective when wrapped on mobile." },
+      { "category": "CTA quality", "score": 6, "weight": 15, "display_score": "6/10 (weight 15)", "note": "CTA wording is decent, but visibility and competition reduce mobile effectiveness." },
+      { "category": "Messaging / differentiation", "score": 7, "weight": 15, "display_score": "7/10 (weight 15)", "note": "Differentiation is present but not the primary bottleneck compared with mobile UX." },
+      { "category": "Trust / proof", "score": 7, "weight": 10, "display_score": "7/10 (weight 10)", "note": "Proof appears credible, but some signals may sit too low for mobile users." },
+      { "category": "Structure / hierarchy", "score": 5, "weight": 10, "display_score": "5/10 (weight 10)", "note": "Desktop structure is acceptable, but mobile first-screen hierarchy is overloaded." },
+      { "category": "Objection handling", "score": 5, "weight": 5, "display_score": "5/10 (weight 5)", "note": "Reassurance exists but arrives late in the mobile journey." },
+      { "category": "Mobile experience", "score": 3, "weight": 5, "display_score": "3/10 (weight 5)", "note": "CTA placement, density, and competing elements create a clear mobile conversion drag." }
+    ]
+  },
+  "quick_wins_section": {
+    "title": "Quick Wins",
+    "subtitle": "Mobile-first fixes (fast)",
+    "items": [
+      "Reduce mobile hero height so the primary CTA appears in the first viewport.",
+      "Remove or collapse non-essential hero badges/chips on mobile.",
+      "Trim the mobile subheadline to 1-2 lines and keep the key outcome first.",
+      "Demote secondary actions in the mobile hero/nav.",
+      "Add one short reassurance line directly under the mobile CTA."
+    ]
+  },
+  "rewrite_pack_section": {
+    "title": "Rewrite Pack",
+    "headline_options_label": "Headline options",
+    "headlines": [
+      "Close Your Books Faster With Automated Reconciliation",
+      "Automated Reconciliation for Finance Teams That Need Month-End Done Faster",
+      "Finish Reconciliation in Less Time Without Spreadsheet Cleanup"
+    ],
+    "subheadline_options_label": "Subheadline options",
+    "subheadlines": [
+      "Sync transactions, flag mismatches, and clear reviews faster with one workflow built for finance teams.",
+      "Built for teams that want faster month-end close, fewer manual checks, and cleaner audit trails."
+    ],
+    "cta_options_label": "CTA options",
+    "ctas": [
+      "Book a 15-Min Demo",
+      "Start Free Trial",
+      "See Reconciliation Workflow",
+      "Talk to Sales",
+      "Get Pricing"
+    ]
+  },
+  "mobile_section": {
+    "title": "Mobile Roast",
+    "score_label": "Mobile score",
+    "score": 3,
+    "findings": [
+      "Primary CTA is pushed below the fold by hero stack height",
+      "Too many hero elements compete for attention on first mobile screen",
+      "Dense wrapped headline/subheadline reduces scan speed",
+      "Secondary actions are too prominent relative to the primary CTA"
+    ]
+  },
+  "positives_section": {
+    "title": "What's Working",
+    "items": [
+      "The core offer and outcome are reasonably clear in the copy.",
+      "Desktop layout likely converts better than the current mobile experience.",
+      "The page has enough structure and proof to improve quickly with mobile-first adjustments."
+    ]
+  },
+  "share_card_copy": {
+    "title": "Roast My Landing Page",
+    "quote": "Desktop is fine. Mobile is where your conversions are leaking.",
+    "score_text": "Roast Score: 67/100",
+    "top_issues": [
+      "CTA below fold",
+      "Crowded mobile hero",
+      "Slow mobile scan"
+    ],
+    "footer_cta": "Paste your URL. Get roasted."
+  },
+  "footer": {
+    "disclaimer": "AI roast based on page content and viewport observations. Mobile findings prioritize first-screen conversion friction.",
+    "rerun_cta": "Roast another page"
+  }
+}
