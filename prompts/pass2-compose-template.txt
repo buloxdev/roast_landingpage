@@ -1,0 +1,147 @@
+Convert the provided Pass 1 analysis JSON into Pass 2 UI composition JSON for the existing v1 frontend.
+
+Task context
+- This is Pass 2 (UI composition copy), not analysis.
+- Preserve Pass 1 facts/scores/ranking.
+- No UI changes. No schema changes.
+- Output must match the frozen `pass2-ui` contract exactly.
+
+Inputs
+- Requested URL: {{requested_url}}
+- Roast mode/tone label for UI: {{roast_mode_label}}
+- Pass 1 analysis JSON:
+{{pass1_analysis_json}}
+
+Output requirements (exact top-level keys, no extras)
+- header
+- summary_panel
+- tabs
+- issue_cards
+- score_section
+- quick_wins_section
+- rewrite_pack_section
+- mobile_section
+- positives_section
+- share_card_copy
+- footer
+
+Required structural constraints (must satisfy)
+- `summary_panel.top_3_problems`: exactly 3 strings
+- `issue_cards`: 1 to 5 cards (rank 1..5)
+- Each `issue_cards[*].impact_badge`: `High|Medium|Low`
+- Each `issue_cards[*].confidence_badge`: `High|Medium|Low`
+- Each `issue_cards[*].evidence[*].type`: `quote|ui_observation`
+- `score_section.items`: exactly 9 rows using these category names:
+  - Clarity of offer
+  - Target audience clarity
+  - Headline strength
+  - CTA quality
+  - Messaging / differentiation
+  - Trust / proof
+  - Structure / hierarchy
+  - Objection handling
+  - Mobile experience
+- `quick_wins_section.items`: 3 to 5 strings
+- `rewrite_pack_section.headlines`: exactly 3 strings
+- `rewrite_pack_section.subheadlines`: exactly 2 strings
+- `rewrite_pack_section.ctas`: exactly 5 strings
+- `mobile_section.score`: integer 0..10
+- `positives_section.items`: 2 to 4 strings
+- `share_card_copy.quote`: max 140 chars
+- `share_card_copy.top_issues`: exactly 3 strings
+
+Section intent / mapping guidance
+- `header`: high-level result summary from Pass 1 score + verdict
+- `summary_panel`: one-line summary + top 3 problems + CTA hint
+- `tabs`: UI navigation labels for the existing sections (presentation labels only)
+- `issue_cards`: top ranked problems with evidence/fix/rewrite pulled from Pass 1
+- `score_section`: 9 weighted category rows with short notes
+- `quick_wins_section`: high-confidence, easy-to-implement actions
+- `rewrite_pack_section`: UI-ready rewrite options from Pass 1 rewrite pack
+- `mobile_section`: mobile score + findings (preserve uncertainty if mobile evidence is partial)
+- `positives_section`: what is already working
+- `share_card_copy`: concise social/share copy derived from Pass 1 summary/issues
+- `footer`: v1 disclaimer + rerun CTA text
+
+Output JSON skeleton (fill all values)
+{
+  "header": {
+    "eyebrow": "...",
+    "title": "...",
+    "subtitle": "...",
+    "score_label": "...",
+    "score_value": 0,
+    "score_band": "...",
+    "verdict_chip": "..."
+  },
+  "summary_panel": {
+    "one_liner": "...",
+    "top_problems_title": "...",
+    "top_3_problems": ["...", "...", "..."],
+    "cta_hint": "..."
+  },
+  "tabs": [
+    { "id": "problems", "label": "Top Problems" },
+    { "id": "scores", "label": "Scores" },
+    { "id": "wins", "label": "Quick Wins" },
+    { "id": "rewrites", "label": "Rewrite Pack" },
+    { "id": "mobile", "label": "Mobile Roast" },
+    { "id": "positives", "label": "What's Working" }
+  ],
+  "issue_cards": [
+    {
+      "rank": 1,
+      "category": "...",
+      "title": "...",
+      "impact_badge": "High",
+      "confidence_badge": "High",
+      "problem": "...",
+      "why_it_hurts": "...",
+      "evidence_label": "Evidence",
+      "evidence": [{ "type": "quote", "value": "..." }],
+      "fix_label": "Fix",
+      "fix": "...",
+      "rewrite_label": "Example Rewrite",
+      "example_rewrite": "..."
+    }
+  ],
+  "score_section": {
+    "title": "Category Scores",
+    "items": []
+  },
+  "quick_wins_section": {
+    "title": "Quick Wins",
+    "subtitle": "...",
+    "items": ["...", "...", "..."]
+  },
+  "rewrite_pack_section": {
+    "title": "Rewrite Pack",
+    "headline_options_label": "Headline options",
+    "headlines": ["...", "...", "..."],
+    "subheadline_options_label": "Subheadline options",
+    "subheadlines": ["...", "..."],
+    "cta_options_label": "CTA options",
+    "ctas": ["...", "...", "...", "...", "..."]
+  },
+  "mobile_section": {
+    "title": "Mobile Roast",
+    "score_label": "Mobile score",
+    "score": 0,
+    "findings": ["..."]
+  },
+  "positives_section": {
+    "title": "What's Working",
+    "items": ["...", "..."]
+  },
+  "share_card_copy": {
+    "title": "...",
+    "quote": "...",
+    "score_text": "...",
+    "top_issues": ["...", "...", "..."],
+    "footer_cta": "..."
+  },
+  "footer": {
+    "disclaimer": "...",
+    "rerun_cta": "..."
+  }
+}
