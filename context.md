@@ -1,6 +1,6 @@
 # Context Snapshot (Pause/Resume)
 
-Last updated: 2026-02-24 (UI shell + non-UI deliverables integrated, README added, repo pushed to GitHub, single-repo workflow chosen for next phase)
+Last updated: 2026-02-26 (UI shell + non-UI deliverables integrated, stub API scaffold + pass2 validation helpers added, frontend wired to stub API in progress)
 
 ## What This Project Is
 `Roast My Landing Page` is a tool where users paste a landing page URL and an AI agent gives a brutal-but-useful conversion roast.
@@ -96,6 +96,8 @@ Why:
 - `index.html`
 - `styles.css`
 - `app.js`
+- `server.js`
+- `package.json`
 - `context.md`
 - `docs/v1-decisions.md`
 - `docs/api-contract.md`
@@ -113,6 +115,9 @@ Why:
 - `prompts/pass2-system.txt`
 - `prompts/pass2-compose-template.txt`
 - `prompts/README.md`
+- `scripts/validate-pass2-fixtures.js`
+- `utils/pass2-validation.js`
+- `utils/pass2-boundary.js`
 
 ### Implemented prototype (static frontend app shell + desktop-first results)
 There is now a static frontend v1 shell in `app.js` with screen state and a working flow:
@@ -181,6 +186,7 @@ Note:
 ### Main branch status at pause time
 - `main` is pushed to GitHub (`origin/main`)
 - Repo is intended to use GitHub as the primary reference/backup point moving forward
+- Current local working state may include in-progress changes while wiring frontend -> stub API (`app.js`, `context.md`) before the next commit
 
 ### Notable commits already on `main`
 - `Add v1 API contract`
@@ -189,6 +195,8 @@ Note:
 - `Add v1 validation rules spec`
 - `Update project context after agent integrations`
 - `Add project README and update context snapshot`
+- `Add UI error states and stub API scaffold`
+- `Load pass2 validation helpers in static app`
 
 ## Contract Status
 
@@ -391,12 +399,15 @@ Begin backend/UI integration work against the now-merged contracts/prompts/fixtu
 
 ## Resume Checklist (for future thread)
 - Confirm `main` is up to date with `origin/main`
+- Check for any uncommitted local changes (`git status`) before starting new work
 - Confirm `main` contains:
   - UI shell flow
   - prompt pack
   - API contract
   - edge-case fixtures + error copy
   - validation rules
+  - stub API scaffold (`server.js`, `package.json`)
+  - pass2 validation helpers (`utils/`, `scripts/`)
 - Preserve `schemas/pass2-ui-contract.json` shape during integration
 - Run sanity checks:
   - JSON parse on all `fixtures/*.json`
@@ -404,3 +415,61 @@ Begin backend/UI integration work against the now-merged contracts/prompts/fixtu
   - `node --check` on UI scripts
 - Proceed with backend/UI integration (replace fake analysis flow with real API path)
 - Start with UI URL validation + explicit error states using `docs/error-copy.md`
+
+## Pause Update (2026-02-26): Frontend wired to stub API
+
+### What was completed today
+- `app.js` was updated to use the real two-pass stub API flow while preserving the existing UI shell/screens:
+  - `POST /analyze`
+  - `POST /compose`
+- The existing UX flow is unchanged:
+  - `Home/Input` -> `Analyzing` -> `Results`
+  - Existing error screens still used
+  - Existing fake progress/analyzing animation still used
+- Fixture fallback behavior was preserved (dev-friendly):
+  - If the stub API is unavailable / times out / returns 5xx, frontend falls back to local pass2 fixtures
+  - A results warning banner now indicates when fixture fallback was used because the API was unavailable
+- Pass2 response boundary validation is now applied before rendering using the existing `utils/pass2-validation.js`
+- Error mapping was improved to route backend errors into current UI error states (including compose failure copy from `docs/error-copy.md`)
+- `node --check app.js` passed after changes
+
+### Files changed in this work
+- `app.js` (only)
+
+### Current behavior after wiring
+- Default API base in frontend: `http://localhost:8787`
+- When stub API is running:
+  - frontend submits real requests to `/analyze` then `/compose`
+  - renders pass2 JSON from `/compose` (after lightweight validation)
+- When stub API is not running:
+  - frontend still works using fixture fallback
+  - results screen shows warning banner indicating fallback mode
+
+### Stub/backend limitations noticed (important for next phase)
+- Stub `POST /analyze` currently always returns `meta.evidence_status = "partial"`, so API-backed runs always show the partial-evidence warning
+- Stub API mostly returns generic validation/internal errors and does not exercise all recommended contract error codes (`PAGE_BLOCKED`, `FETCH_FAILED`, `ANALYSIS_FAILED`, etc.)
+- Stub `POST /compose` returns a mostly static sample UI payload (minimal mode-based variation), so results are not yet meaningfully driven by pass1 content
+
+## Next Steps (Updated Recommended Order)
+
+### Immediate next step
+Run a quick end-to-end manual verification with both processes locally:
+- `npm run api:stub` (stub API)
+- local static server for UI (e.g. `python3 -m http.server 8090`)
+- confirm:
+  - API-backed run works
+  - fallback banner appears when API is off
+  - compose/invalid/error states map cleanly
+
+### Next implementation tasks (recommended)
+1. Add a small dev toggle / debug indicator for API mode vs fixture-fallback mode (optional, low risk)
+2. Improve stub server scenarios so frontend error mappings can be exercised (`PAGE_BLOCKED`, `FETCH_FAILED`, `ANALYSIS_FAILED`, `COMPOSE_FAILED`)
+3. Wire `GET /roast/:id` into frontend permalink/share behavior (currently still placeholder copy action)
+4. Tighten pass2 boundary handling/logging for malformed compose responses (optional telemetry/debug console output)
+5. Start real backend implementation behind the stub contract without changing frontend flow
+
+### After backend moves beyond stub behavior
+1. Harden `pass1-analysis` schema using observed real outputs
+2. Add server-side validation/fidelity checks (pass1 -> pass2 invariants)
+3. Implement share page rendering for `GET /roast/:id`
+4. Consider modularizing `app.js` after behavior is stable

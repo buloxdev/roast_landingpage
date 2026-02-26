@@ -195,6 +195,7 @@
     strong: "./fixtures/pass2-ui.strong-page.json",
     mobile: "./fixtures/pass2-ui.mobile-issues.json",
   };
+  const API_BASE_URL = String(window.ROAST_API_BASE_URL || "http://localhost:8787").replace(/\/+$/, "");
   const ERROR_COPY = {
     emptyUrl: "Paste a landing page URL to start the roast.",
     invalidUrl:
@@ -232,6 +233,15 @@
       message: "We loaded the page, but the roast analysis did not complete.",
       primaryLabel: "Retry roast",
       secondaryLabel: "Back to home",
+    },
+    composeFailed: {
+      kind: "compose",
+      title: "We scored the page, but could not format the results",
+      message:
+        "The analysis completed, but the UI composition step failed. Retry to regenerate the results screen.",
+      primaryLabel: "Retry formatting",
+      secondaryLabel: "Run roast again",
+      secondaryAction: "retry-analysis",
     },
     fixtureTimeout: {
       kind: "timeout",
@@ -306,6 +316,9 @@
     resultMeta: {
       partialEvidence: false,
       scenario: "sample",
+      source: "fixture",
+      apiFallback: false,
+      fallbackReason: "",
     },
     progress: 0,
     completedSteps: 0,
@@ -404,6 +417,180 @@
     }
   }
 
+  function getApiUrl(path) {
+    return `${API_BASE_URL}${path}`;
+  }
+
+  function isObject(value) {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  }
+
+  function validatePass2PayloadSafe(payload) {
+    if (
+      window.Pass2Validation &&
+      typeof window.Pass2Validation.validatePass2Payload === "function"
+    ) {
+      return window.Pass2Validation.validatePass2Payload(payload);
+    }
+    return { ok: true, errors: [] };
+  }
+
+  async function readJsonResponse(response) {
+    const text = await response.text();
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch (_error) {
+      return { __parse_error: true, raw: text };
+    }
+  }
+
+  function buildApiErrorFromResponse(response, payload, phase) {
+    const apiError = isObject(payload) && isObject(payload.error) ? payload.error : null;
+    return {
+      kind: "api",
+      phase,
+      status: response.status,
+      code: apiError && apiError.code ? apiError.code : "API_ERROR",
+      message:
+        (apiError && apiError.message) ||
+        `HTTP ${response.status} while calling ${phase === "compose" ? "/compose" : "/analyze"}`,
+      retryable: Boolean(apiError && apiError.retryable),
+      details: Array.isArray(apiError && apiError.details) ? apiError.details : [],
+      payload,
+      unavailable: response.status >= 500,
+    };
+  }
+
+  async function postJson(path, body, phase) {
+    let response;
+    try {
+      response = await withTimeout(
+        fetch(getApiUrl(path), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+        7000,
+        `${phase} request timed out`
+      );
+    } catch (error) {
+      throw {
+        kind: "api",
+        phase,
+        code: "API_UNAVAILABLE",
+        message: error && error.message ? error.message : "API request failed",
+        retryable: true,
+        unavailable: true,
+        cause: error,
+      };
+    }
+
+    const payload = await readJsonResponse(response);
+    if (!response.ok) {
+      throw buildApiErrorFromResponse(response, payload, phase);
+    }
+    return payload;
+  }
+
+  function getApiErrorDetailReason(error, fieldName) {
+    if (!error || !Array.isArray(error.details)) return "";
+    const entry = error.details.find(
+      (detail) => detail && typeof detail === "object" && detail.field === fieldName
+    );
+    return entry && typeof entry.reason === "string" ? entry.reason : "";
+  }
+
+  function mapApiErrorToErrorState(error) {
+    const code = String((error && error.code) || "").toUpperCase();
+    const message = String((error && error.message) || "").toLowerCase();
+
+    if (code === "PAGE_BLOCKED") return getErrorStateFromTemplate(ERROR_COPY.blocked);
+    if (code === "FETCH_FAILED" && (message.includes("redirect") || message.includes("dashboard"))) {
+      return getErrorStateFromTemplate(ERROR_COPY.redirected);
+    }
+    if (code === "FETCH_FAILED" || code === "RATE_LIMITED") {
+      return getErrorStateFromTemplate(ERROR_COPY.timeout);
+    }
+    if (code === "ANALYSIS_FAILED") return getErrorStateFromTemplate(ERROR_COPY.analysisFailed);
+    if (code === "COMPOSE_FAILED") return getErrorStateFromTemplate(ERROR_COPY.composeFailed);
+    if (code === "INVALID_PASS2_PAYLOAD") return getErrorStateFromTemplate(ERROR_COPY.composeInvalid);
+    if (code === "INVALID_REQUEST") {
+      const urlReason = getApiErrorDetailReason(error, "url");
+      if (/valid http/i.test(urlReason)) return getErrorStateFromTemplate(ERROR_COPY.analysisFailed);
+    }
+    return null;
+  }
+
+  async function runApiRoast(url, mode) {
+    const analyze = await postJson("/analyze", { url, mode, persist: true }, "analyze");
+    if (!isObject(analyze) || !isObject(analyze.analysis)) {
+      throw {
+        kind: "api",
+        phase: "analyze",
+        code: "ANALYSIS_FAILED",
+        message: "Analyze response missing analysis payload.",
+        unavailable: false,
+      };
+    }
+
+    const compose = await postJson(
+      "/compose",
+      {
+        roast_id: analyze.roast_id,
+        analysis: analyze.analysis,
+        mode,
+      },
+      "compose"
+    );
+
+    const pass2Validation = validatePass2PayloadSafe(compose);
+    if (!pass2Validation.ok) {
+      throw {
+        kind: "api",
+        phase: "compose",
+        code: "INVALID_PASS2_PAYLOAD",
+        message: "Compose response did not match the pass2 UI contract.",
+        unavailable: false,
+        validation: pass2Validation,
+      };
+    }
+
+    return {
+      ui: compose,
+      partialEvidence:
+        Boolean(
+          analyze &&
+            analyze.analysis &&
+            analyze.analysis.meta &&
+            analyze.analysis.meta.evidence_status === "partial"
+        ),
+      roastId: analyze.roast_id || "",
+    };
+  }
+
+  async function runFixtureFallbackForScenario(scenario) {
+    if (scenario === "blocked") return { errorState: getErrorStateFromTemplate(ERROR_COPY.blocked) };
+    if (scenario === "redirected") return { errorState: getErrorStateFromTemplate(ERROR_COPY.redirected) };
+    if (scenario === "analysis-fail") return { errorState: getErrorStateFromTemplate(ERROR_COPY.analysisFailed) };
+    if (scenario === "timeout") return { errorState: getErrorStateFromTemplate(ERROR_COPY.timeout) };
+
+    const fixtureKind =
+      scenario === "partial"
+        ? "partial"
+        : scenario === "strong"
+        ? "strong"
+        : scenario === "mobile"
+        ? "mobile"
+        : "sample";
+    const ui = await loadPass2Fixture(fixtureKind);
+    const pass2Validation = validatePass2PayloadSafe(ui);
+    if (!pass2Validation.ok) {
+      throw new Error("Fixture payload failed pass2 validation");
+    }
+    return { ui, partialEvidence: scenario === "partial", scenario: fixtureKind };
+  }
+
   async function loadPass2Fixture(kind) {
     const fixtureKind = kind || "sample";
     if (fixtureCache[fixtureKind]) return fixtureCache[fixtureKind];
@@ -433,6 +620,8 @@
       helper: template.helper || "",
       primaryLabel: template.primaryLabel,
       secondaryLabel: template.secondaryLabel,
+      primaryAction: template.primaryAction || "",
+      secondaryAction: template.secondaryAction || "",
     };
   }
 
@@ -457,6 +646,17 @@
         title: "Could not load sample roast fixture",
         message: "Falling back to the built-in sample result for local preview.",
         helper: "",
+      });
+    }
+
+    if (state.resultMeta && state.resultMeta.apiFallback) {
+      warnings.push({
+        kind: "fallback",
+        title: "Stub API unavailable - showing local fixture",
+        message:
+          state.resultMeta.fallbackReason ||
+          "Could not reach the local stub API, so the UI loaded a local fixture result instead.",
+        helper: `Expected API base: ${API_BASE_URL}`,
       });
     }
 
@@ -625,7 +825,7 @@
               <div>
                 <div class="eyebrow">Start Roast</div>
                 <h2>Run v1 report</h2>
-                <p>Frontend-only for now. Uses the fixture report while preserving the final results layout.</p>
+                <p>Calls the local stub API when available, with fixture fallback for local dev preview.</p>
               </div>
               <div class="mode-pill mode-pill-soft">${escapeHtml(mode.hint)}</div>
             </div>
@@ -674,7 +874,7 @@
             </form>
 
             <div class="fixture-note">
-              <strong>v1 shell behavior:</strong> fake progress, fixed result fixture, no backend/API calls yet.
+              <strong>v1 shell behavior:</strong> real API calls (`/analyze`, `/compose`) with fixture fallback if the stub API is unavailable.
             </div>
           </section>
         </div>
@@ -751,8 +951,8 @@
             <section class="rail-card">
               <h3>v1 Status</h3>
               <ul class="rail-list">
-                <li>Static frontend flow only</li>
-                <li>Fixture-backed results rendering</li>
+                <li>Shell flow preserved</li>
+                <li>Stub API + fixture fallback</li>
                 <li>Locked desktop section order preserved</li>
               </ul>
             </section>
@@ -1094,6 +1294,9 @@
     state.resultMeta = {
       partialEvidence: false,
       scenario: "sample",
+      source: "fixture",
+      apiFallback: false,
+      fallbackReason: "",
     };
     state.progress = 0;
     state.completedSteps = 0;
@@ -1116,6 +1319,9 @@
     state.resultMeta = {
       partialEvidence: false,
       scenario: scenario === "analysis-fail" ? "sample" : scenario,
+      source: "api",
+      apiFallback: false,
+      fallbackReason: "",
     };
     state.runId += 1;
     const currentRunId = state.runId;
@@ -1124,29 +1330,47 @@
     state.progress = 4;
     state.completedSteps = 0;
     render();
+    const roastPromise = (async function () {
+      try {
+        const apiRun = await runApiRoast(validation.url, state.form.mode);
+        return {
+          ui: apiRun.ui,
+          partialEvidence: Boolean(apiRun.partialEvidence),
+          source: "api",
+          apiFallback: false,
+          scenario: state.resultMeta.scenario,
+        };
+      } catch (error) {
+        const mappedError = mapApiErrorToErrorState(error);
+        if (mappedError && !error.unavailable) {
+          throw { type: "ui-error", errorState: mappedError };
+        }
 
-    if (scenario === "blocked") {
-      state.analyzing = false;
-      state.screen = "error";
-      state.errorState = getErrorStateFromTemplate(ERROR_COPY.blocked);
-      render();
-      return;
-    }
-    if (scenario === "redirected") {
-      state.analyzing = false;
-      state.screen = "error";
-      state.errorState = getErrorStateFromTemplate(ERROR_COPY.redirected);
-      render();
-      return;
-    }
+        if (!error || !error.unavailable) {
+          throw {
+            type: "ui-error",
+            errorState: mappedError || getErrorStateFromTemplate(ERROR_COPY.analysisFailed),
+          };
+        }
 
-    const fixtureKind = scenario === "partial" ? "partial" : scenario === "strong" ? "strong" : scenario === "mobile" ? "mobile" : "sample";
-    const fixtureDataPromise =
-      scenario === "timeout"
-        ? new Promise((_, reject) =>
-            window.setTimeout(() => reject(new Error("Fixture load timed out.")), 5200)
-          )
-        : loadPass2Fixture(fixtureKind);
+        const fallback = await runFixtureFallbackForScenario(scenario);
+        if (fallback.errorState) {
+          throw { type: "ui-error", errorState: fallback.errorState };
+        }
+
+        return {
+          ui: fallback.ui,
+          partialEvidence: Boolean(fallback.partialEvidence),
+          source: "fixture",
+          apiFallback: true,
+          scenario: fallback.scenario || state.resultMeta.scenario,
+          fallbackReason:
+            error.code === "API_UNAVAILABLE"
+              ? `Could not reach ${API_BASE_URL} (${error.message}).`
+              : `Stub API returned ${error.status || "an error"} during ${error.phase || "analysis"}.`,
+        };
+      }
+    })();
     const progressTargets = [16, 34, 57, 78, 94];
     const progressPauses = [420, 520, 640, 580, 520];
     const startedAt = Date.now();
@@ -1167,23 +1391,20 @@
 
     const minRuntimeMs = 2600;
     const remaining = Math.max(0, minRuntimeMs - (Date.now() - startedAt));
-    let fixtureData;
+    let runOutput;
     try {
-      [fixtureData] = await Promise.all([
-        withTimeout(fixtureDataPromise, 5000, "Fixture load timed out."),
+      [runOutput] = await Promise.all([
+        roastPromise,
         sleep(remaining),
       ]);
     } catch (error) {
       if (state.runId !== currentRunId) return;
       state.analyzing = false;
       state.screen = "error";
-      if (scenario === "analysis-fail") {
-        state.errorState = getErrorStateFromTemplate(ERROR_COPY.analysisFailed);
-      } else {
-        state.errorState = getErrorStateFromTemplate(
-          /timed out/i.test(String(error && error.message)) ? ERROR_COPY.timeout : ERROR_COPY.fixtureTimeout
-        );
-      }
+      state.errorState =
+        error && error.type === "ui-error" && error.errorState
+          ? error.errorState
+          : getErrorStateFromTemplate(ERROR_COPY.fixtureTimeout);
       render();
       return;
     }
@@ -1195,8 +1416,13 @@
     await sleep(220);
     if (state.runId !== currentRunId) return;
 
-    state.resultData = fixtureData || FALLBACK_DATA;
-    state.resultMeta.partialEvidence = scenario === "partial";
+    state.resultData = (runOutput && runOutput.ui) || FALLBACK_DATA;
+    state.resultMeta.partialEvidence = Boolean(runOutput && runOutput.partialEvidence);
+    state.resultMeta.scenario =
+      (runOutput && runOutput.scenario) || state.resultMeta.scenario || "sample";
+    state.resultMeta.source = (runOutput && runOutput.source) || "fixture";
+    state.resultMeta.apiFallback = Boolean(runOutput && runOutput.apiFallback);
+    state.resultMeta.fallbackReason = (runOutput && runOutput.fallbackReason) || "";
     state.screen = "results";
     state.analyzing = false;
     render();
