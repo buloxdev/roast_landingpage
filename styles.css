@@ -839,6 +839,14 @@ button {
   line-height: 1.45;
 }
 
+.analyzing-copy + .analyzing-copy {
+  margin-top: 6px;
+}
+
+.analyzing-copy-detail {
+  font-size: 14px;
+}
+
 .progress-header {
   display: flex;
   justify-content: space-between;
@@ -993,6 +1001,13 @@ button {
   max-width: 60ch;
 }
 
+.error-helper {
+  margin: 12px 0 0;
+  color: #6f5849;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .error-meta-row {
   margin-top: 14px;
   display: flex;
@@ -1031,6 +1046,54 @@ button {
   margin-top: 16px;
 }
 
+.results-banner-stack {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+}
+
+.results-banner {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 8px 24px rgba(25, 22, 20, 0.04);
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.results-banner.is-warning {
+  border-color: #e8c79c;
+  background: #fff7ee;
+}
+
+.results-banner strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.results-banner p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.results-banner small {
+  display: block;
+  margin-top: 6px;
+  color: #6f5849;
+  line-height: 1.35;
+}
+
+.results-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
 .hidden {
   display: none !important;
 }
@@ -1049,6 +1112,10 @@ button {
   .error-shell {
     min-height: auto;
     display: block;
+  }
+
+  .results-banner {
+    flex-direction: column;
   }
 
   .layout {

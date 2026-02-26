@@ -188,26 +188,91 @@
 }`);
 
   const SAMPLE_FIXTURE_URL = "./fixtures/pass2-ui.sample.json";
+  const FIXTURE_PATHS = {
+    sample: "./fixtures/pass2-ui.sample.json",
+    partial: "./fixtures/pass2-ui.partial-evidence.json",
+    blocked: "./fixtures/pass2-ui.blocked-page.json",
+    strong: "./fixtures/pass2-ui.strong-page.json",
+    mobile: "./fixtures/pass2-ui.mobile-issues.json",
+  };
+  const ERROR_COPY = {
+    emptyUrl: "Paste a landing page URL to start the roast.",
+    invalidUrl:
+      "That URL does not look valid. Paste a full page URL (for example, https://example.com).",
+    unsupportedProtocol: "Use an http:// or https:// URL.",
+    blocked: {
+      kind: "blocked",
+      title: "We could not access that page",
+      message:
+        "The page appears to be behind login, bot protection, or a permission gate, so we could not see the landing page content.",
+      primaryLabel: "Try another URL",
+      secondaryLabel: "Use sample URL",
+      helper: "If this is a preview link, make sure it loads publicly without login.",
+    },
+    timeout: {
+      kind: "timeout",
+      title: "The page took too long to load",
+      message:
+        "We could not finish reading the page before the timeout. Heavy scripts, redirects, or third-party widgets may be blocking analysis.",
+      primaryLabel: "Retry roast",
+      secondaryLabel: "Try another URL",
+    },
+    redirected: {
+      kind: "redirected",
+      title: "That URL did not open a landing page",
+      message:
+        "We were redirected to an app or dashboard page instead of a marketing page.",
+      primaryLabel: "Try another URL",
+      secondaryLabel: "Use sample URL",
+      helper: "Use the public marketing URL (homepage, pricing, product, or campaign page).",
+    },
+    analysisFailed: {
+      kind: "analysis",
+      title: "Analysis failed",
+      message: "We loaded the page, but the roast analysis did not complete.",
+      primaryLabel: "Retry roast",
+      secondaryLabel: "Back to home",
+    },
+    fixtureTimeout: {
+      kind: "timeout",
+      title: "Could not build the roast report",
+      message:
+        "The frontend shell could not load the fixture report for this run. Retry the roast or go back and try again.",
+      primaryLabel: "Retry roast",
+      secondaryLabel: "Back to home",
+    },
+    composeInvalid: {
+      kind: "compose",
+      title: "Results format error",
+      message:
+        "We received a roast result in an unexpected format and could not render it safely.",
+      primaryLabel: "Retry roast",
+      secondaryLabel: "Use sample URL",
+    },
+    partialEvidence: {
+      title: "Roast generated with limited evidence",
+      message:
+        "We found enough page content to produce a roast, but some sections were hidden, blocked, or not fully visible. Confidence is lower on a few findings.",
+      helper:
+        "Interactive content (tabs, carousels, modals) can reduce evidence quality.",
+    },
+  };
   const ANALYSIS_STEPS = [
     {
-      title: "Capturing page",
-      detail: "Queuing the URL and taking a first desktop snapshot.",
+      title: "Loading page",
+      detail: "We are loading the page and capturing the initial view.",
     },
     {
-      title: "Scoring messaging",
-      detail: "Checking hero clarity, CTA specificity, and value proposition fit.",
+      title: "Reading copy and CTA flow",
+      detail: "We are extracting visible copy and identifying the primary CTA path.",
     },
     {
-      title: "Ranking blockers",
-      detail: "Prioritizing conversion risks by likely impact.",
+      title: "Scoring clarity, messaging, and trust",
+      detail: "We are scoring the page against the v1 conversion rubric.",
     },
     {
-      title: "Building rewrite pack",
-      detail: "Generating headline, subheadline, and CTA alternatives.",
-    },
-    {
-      title: "Composing report",
-      detail: "Formatting the v1 results layout from pass2 UI JSON.",
+      title: "Composing results for the UI",
+      detail: "We are building the result payload for the desktop report layout.",
     },
   ];
   const MODE_OPTIONS = [
@@ -238,6 +303,10 @@
     },
     formError: "",
     errorState: null,
+    resultMeta: {
+      partialEvidence: false,
+      scenario: "sample",
+    },
     progress: 0,
     completedSteps: 0,
     resultData: null,
@@ -245,8 +314,8 @@
     analyzing: false,
   };
 
-  let fixtureCache = null;
-  let fixturePromise = null;
+  const fixtureCache = Object.create(null);
+  const fixturePromises = Object.create(null);
 
   function escapeHtml(value) {
     return String(value)
@@ -281,27 +350,44 @@
   }
 
   function validateLandingPageUrl(raw) {
-    const normalized = normalizeUrlInput(raw);
-    if (!normalized) {
-      return { ok: false, error: "Enter a landing page URL." };
+    const value = (raw || "").trim();
+    if (!value) {
+      return { ok: false, error: ERROR_COPY.emptyUrl };
     }
 
+    if (/^[a-z]+:\/\//i.test(value) && !/^https?:\/\//i.test(value)) {
+      return { ok: false, error: ERROR_COPY.unsupportedProtocol };
+    }
+
+    const normalized = normalizeUrlInput(value);
     let parsed;
     try {
       parsed = new URL(normalized);
     } catch (_error) {
-      return { ok: false, error: "Enter a valid URL (for example, https://your-site.com)." };
+      return { ok: false, error: ERROR_COPY.invalidUrl };
     }
 
     if (!/^https?:$/.test(parsed.protocol)) {
-      return { ok: false, error: "Only http:// and https:// URLs are supported in v1." };
+      return { ok: false, error: ERROR_COPY.unsupportedProtocol };
     }
 
     if (!parsed.hostname || !parsed.hostname.includes(".")) {
-      return { ok: false, error: "Enter a full domain (for example, example.com)." };
+      return { ok: false, error: ERROR_COPY.invalidUrl };
     }
 
     return { ok: true, url: parsed.toString() };
+  }
+
+  function getScenarioFromUrl(urlString) {
+    const value = String(urlString || "").toLowerCase();
+    if (value.includes("timeout")) return "timeout";
+    if (value.includes("blocked") || value.includes("login") || value.includes("private")) return "blocked";
+    if (value.includes("dashboard") || value.includes("/app")) return "redirected";
+    if (value.includes("analysis-fail") || value.includes("compose-fail")) return "analysis-fail";
+    if (value.includes("partial")) return "partial";
+    if (value.includes("strong")) return "strong";
+    if (value.includes("mobile")) return "mobile";
+    return "sample";
   }
 
   async function withTimeout(promise, ms, message) {
@@ -318,23 +404,63 @@
     }
   }
 
-  async function loadPass2Fixture() {
-    if (fixtureCache) return fixtureCache;
-    if (!fixturePromise) {
-      fixturePromise = (async function () {
+  async function loadPass2Fixture(kind) {
+    const fixtureKind = kind || "sample";
+    if (fixtureCache[fixtureKind]) return fixtureCache[fixtureKind];
+    if (!fixturePromises[fixtureKind]) {
+      fixturePromises[fixtureKind] = (async function () {
+        const fixtureUrl = FIXTURE_PATHS[fixtureKind] || FIXTURE_PATHS.sample;
         try {
-          const response = await fetch(SAMPLE_FIXTURE_URL, { cache: "no-store" });
+          const response = await fetch(fixtureUrl, { cache: "no-store" });
           if (!response.ok) throw new Error(`fixture status ${response.status}`);
           const json = await response.json();
-          fixtureCache = json;
+          fixtureCache[fixtureKind] = json;
           return json;
         } catch (_error) {
-          fixtureCache = FALLBACK_DATA;
+          fixtureCache[fixtureKind] = fixtureKind === "sample" ? FALLBACK_DATA : FALLBACK_DATA;
           return FALLBACK_DATA;
         }
       })();
     }
-    return fixturePromise;
+    return fixturePromises[fixtureKind];
+  }
+
+  function getErrorStateFromTemplate(template) {
+    return {
+      kind: template.kind,
+      title: template.title,
+      message: template.message,
+      helper: template.helper || "",
+      primaryLabel: template.primaryLabel,
+      secondaryLabel: template.secondaryLabel,
+    };
+  }
+
+  function getResultsWarnings(data) {
+    const warnings = [];
+    if (state.resultMeta && state.resultMeta.partialEvidence) {
+      warnings.push({
+        kind: "partial",
+        title: ERROR_COPY.partialEvidence.title,
+        message: ERROR_COPY.partialEvidence.message,
+        helper: ERROR_COPY.partialEvidence.helper,
+      });
+    }
+
+    if (
+      data === FALLBACK_DATA &&
+      state.resultMeta &&
+      state.resultMeta.scenario !== "sample"
+    ) {
+      warnings.push({
+        kind: "fallback",
+        title: "Could not load sample roast fixture",
+        message: "Falling back to the built-in sample result for local preview.",
+        helper: "",
+      });
+    }
+
+    return warnings;
   }
 
   function renderIssueCard(issue) {
@@ -573,8 +699,11 @@
         <section class="analyzing-shell">
           <div class="analyzing-main">
             <div class="eyebrow">Analyzing</div>
-            <h1 class="analyzing-title">Roasting ${escapeHtml(state.form.url || "your page")}</h1>
-            <p class="analyzing-copy">${escapeHtml(detail)}</p>
+            <h1 class="analyzing-title">Roasting your page...</h1>
+            <p class="analyzing-copy">
+              We are checking the page, extracting copy, and building your roast.
+            </p>
+            <p class="analyzing-copy analyzing-copy-detail">${escapeHtml(detail)}</p>
 
             <div class="progress-header">
               <span>Report generation progress</span>
@@ -644,9 +773,18 @@
     const kindLabel =
       error.kind === "timeout"
         ? "Timeout"
-        : error.kind === "network"
-        ? "Network error"
+        : error.kind === "blocked"
+        ? "Page access blocked"
+        : error.kind === "redirected"
+        ? "Wrong page type"
+        : error.kind === "compose"
+        ? "Results format error"
         : "Analysis error";
+    const primaryAction =
+      error.primaryAction || (error.primaryLabel && /retry/i.test(error.primaryLabel) ? "retry-analysis" : "back-home");
+    const secondaryAction =
+      error.secondaryAction ||
+      (error.secondaryLabel && /sample/i.test(error.secondaryLabel) ? "use-example" : "back-home");
 
     return `
       <div class="shell">
@@ -664,10 +802,15 @@
               <span class="error-chip">${escapeHtml(kindLabel)}</span>
               <span class="error-meta-url">${escapeHtml(state.form.url || "")}</span>
             </div>
+            ${error.helper ? `<p class="error-helper">${escapeHtml(error.helper)}</p>` : ""}
 
             <div class="error-actions">
-              <button class="primary-btn" type="button" data-action="retry-analysis">Retry Roast</button>
-              <button class="ghost-btn" type="button" data-action="back-home">Edit URL</button>
+              <button class="primary-btn" type="button" data-action="${escapeHtml(primaryAction)}">${escapeHtml(
+      error.primaryLabel || "Retry roast"
+    )}</button>
+              <button class="ghost-btn" type="button" data-action="${escapeHtml(secondaryAction)}">${escapeHtml(
+      error.secondaryLabel || "Back to home"
+    )}</button>
             </div>
 
             <div class="fixture-note">
@@ -690,6 +833,7 @@
       positives: "positives",
     };
 
+    const resultWarnings = getResultsWarnings(data);
     return `
       <div class="shell">
         ${renderTopbar({
@@ -724,6 +868,31 @@
             <div class="verdict-chip">${escapeHtml(data.header.verdict_chip)}</div>
           </div>
         </section>
+
+        ${
+          resultWarnings.length
+            ? `
+          <section class="results-banner-stack">
+            ${resultWarnings
+              .map(
+                (warning) => `
+              <div class="results-banner ${warning.kind === "partial" ? "is-warning" : ""}">
+                <div>
+                  <strong>${escapeHtml(warning.title)}</strong>
+                  <p>${escapeHtml(warning.message)}</p>
+                  ${warning.helper ? `<small>${escapeHtml(warning.helper)}</small>` : ""}
+                </div>
+                <div class="results-banner-actions">
+                  <button class="ghost-btn" data-action="retry-analysis">Retry roast</button>
+                </div>
+              </div>
+            `
+              )
+              .join("")}
+          </section>
+        `
+            : ""
+        }
 
         <div class="layout">
           <main class="stack">
@@ -922,6 +1091,10 @@
     state.analyzing = false;
     state.formError = "";
     state.errorState = null;
+    state.resultMeta = {
+      partialEvidence: false,
+      scenario: "sample",
+    };
     state.progress = 0;
     state.completedSteps = 0;
     render();
@@ -937,8 +1110,13 @@
     }
 
     state.form.url = validation.url;
+    const scenario = getScenarioFromUrl(validation.url);
     state.formError = "";
     state.errorState = null;
+    state.resultMeta = {
+      partialEvidence: false,
+      scenario: scenario === "analysis-fail" ? "sample" : scenario,
+    };
     state.runId += 1;
     const currentRunId = state.runId;
     state.screen = "analyzing";
@@ -947,7 +1125,28 @@
     state.completedSteps = 0;
     render();
 
-    const fixtureDataPromise = loadPass2Fixture();
+    if (scenario === "blocked") {
+      state.analyzing = false;
+      state.screen = "error";
+      state.errorState = getErrorStateFromTemplate(ERROR_COPY.blocked);
+      render();
+      return;
+    }
+    if (scenario === "redirected") {
+      state.analyzing = false;
+      state.screen = "error";
+      state.errorState = getErrorStateFromTemplate(ERROR_COPY.redirected);
+      render();
+      return;
+    }
+
+    const fixtureKind = scenario === "partial" ? "partial" : scenario === "strong" ? "strong" : scenario === "mobile" ? "mobile" : "sample";
+    const fixtureDataPromise =
+      scenario === "timeout"
+        ? new Promise((_, reject) =>
+            window.setTimeout(() => reject(new Error("Fixture load timed out.")), 5200)
+          )
+        : loadPass2Fixture(fixtureKind);
     const progressTargets = [16, 34, 57, 78, 94];
     const progressPauses = [420, 520, 640, 580, 520];
     const startedAt = Date.now();
@@ -978,12 +1177,13 @@
       if (state.runId !== currentRunId) return;
       state.analyzing = false;
       state.screen = "error";
-      state.errorState = {
-        kind: /timed out/i.test(String(error && error.message)) ? "timeout" : "network",
-        title: "Could not build the roast report",
-        message:
-          "The frontend shell could not load the fixture report for this run. Retry the roast or go back and try again.",
-      };
+      if (scenario === "analysis-fail") {
+        state.errorState = getErrorStateFromTemplate(ERROR_COPY.analysisFailed);
+      } else {
+        state.errorState = getErrorStateFromTemplate(
+          /timed out/i.test(String(error && error.message)) ? ERROR_COPY.timeout : ERROR_COPY.fixtureTimeout
+        );
+      }
       render();
       return;
     }
@@ -996,6 +1196,7 @@
     if (state.runId !== currentRunId) return;
 
     state.resultData = fixtureData || FALLBACK_DATA;
+    state.resultMeta.partialEvidence = scenario === "partial";
     state.screen = "results";
     state.analyzing = false;
     render();

@@ -1,6 +1,6 @@
 # Context Snapshot (Pause/Resume)
 
-Last updated: 2026-02-24 (Agent A shell flow + API contract + prompt pack + fixtures/error copy + validation rules integrated into `main`)
+Last updated: 2026-02-24 (UI shell + non-UI deliverables integrated, README added, repo pushed to GitHub, single-repo workflow chosen for next phase)
 
 ## What This Project Is
 `Roast My Landing Page` is a tool where users paste a landing page URL and an AI agent gives a brutal-but-useful conversion roast.
@@ -92,6 +92,7 @@ Why:
 ## What Exists in the Repo Right Now
 
 ### Files currently present
+- `README.md`
 - `index.html`
 - `styles.css`
 - `app.js`
@@ -171,6 +172,23 @@ Implemented app-shell behavior:
 
 Note:
 - Local static server preview could not be verified in this environment because the sandbox blocked binding a port.
+
+## Git / Source Control Status
+
+### GitHub remote (configured)
+- `origin`: `https://github.com/buloxdev/roast_landingpage.git`
+
+### Main branch status at pause time
+- `main` is pushed to GitHub (`origin/main`)
+- Repo is intended to use GitHub as the primary reference/backup point moving forward
+
+### Notable commits already on `main`
+- `Add v1 API contract`
+- `Add v1 prompt pack`
+- `Add edge-case fixtures and error copy`
+- `Add v1 validation rules spec`
+- `Update project context after agent integrations`
+- `Add project README and update context snapshot`
 
 ## Contract Status
 
@@ -334,12 +352,24 @@ Delivered:
 4. Fix only integration issues
 5. Proceed to backend work after UI static flow is stable
 
+### Workflow decision update (important)
+The parallel worktree approach worked technically but was confusing operationally during recovery.
+
+Decision for next phase:
+- Use a simpler workflow in the main repo (single thread / single workspace)
+- Commit small changes frequently
+- Push to GitHub frequently
+- Use `context.md` as the running source-of-truth checkpoint
+
+Worktrees can be revisited later if needed, but they are not the default for the immediate next phase.
+
 ## Next Steps (Recommended Order)
 
 ### Immediate next step
 Begin backend/UI integration work against the now-merged contracts/prompts/fixtures:
 - Keep the current UI shell flow and replace fake analysis with real API calls behind the same screens
 - Use edge-case fixtures + error copy to implement explicit error/partial-evidence states
+- Stay in the main repo (no worktrees for now)
 
 ### Next implementation tasks (recommended)
 1. Add URL validation + explicit UI error states using `docs/error-copy.md`
@@ -360,6 +390,7 @@ Begin backend/UI integration work against the now-merged contracts/prompts/fixtu
 - `app.js` still contains embedded fallback fixture data (in addition to loading `fixtures/pass2-ui.sample.json`)
 
 ## Resume Checklist (for future thread)
+- Confirm `main` is up to date with `origin/main`
 - Confirm `main` contains:
   - UI shell flow
   - prompt pack
@@ -372,3 +403,4 @@ Begin backend/UI integration work against the now-merged contracts/prompts/fixtu
   - JSON parse on `schemas/*.json`
   - `node --check` on UI scripts
 - Proceed with backend/UI integration (replace fake analysis flow with real API path)
+- Start with UI URL validation + explicit error states using `docs/error-copy.md`

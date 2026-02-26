@@ -1,0 +1,8 @@
+{
+  "name": "roast-landingpage",
+  "private": true,
+  "scripts": {
+    "api:stub": "node server.js",
+    "validate:pass2-fixtures": "node ./scripts/validate-pass2-fixtures.js"
+  }
+}
