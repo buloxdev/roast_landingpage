@@ -107,6 +107,25 @@ function hasPass1Shape(analysis) {
   return pass1RequiredKeys.every((key) => Object.prototype.hasOwnProperty.call(analysis, key));
 }
 
+function getScenarioFromUrl(urlValue) {
+  const value = String(urlValue || "").toLowerCase();
+  if (value.includes("blocked") || value.includes("login") || value.includes("private")) return "blocked";
+  if (value.includes("timeout")) return "timeout";
+  if (value.includes("dashboard") || value.includes("/app")) return "redirected";
+  if (value.includes("analysis-fail")) return "analysis-fail";
+  if (value.includes("compose-fail")) return "compose-fail";
+  if (value.includes("rate-limit")) return "rate-limit";
+  return "normal";
+}
+
+function shouldForceComposeFailFromAnalysis(analysis) {
+  if (!analysis || typeof analysis !== "object") return false;
+  const share = analysis.share;
+  if (!share || typeof share !== "object") return false;
+  const title = String(share.suggested_title || "").toLowerCase();
+  return title.includes("compose-fail");
+}
+
 function buildMockAnalysis({ url, mode }) {
   return {
     meta: {
@@ -191,6 +210,38 @@ async function handleAnalyze(req, res, requestId) {
     });
   }
 
+  const scenario = getScenarioFromUrl(body.url);
+  if (scenario === "blocked") {
+    return sendError(res, 422, requestId, "PAGE_BLOCKED", "The page could not be accessed.", {
+      details: [{ field: "url", reason: "Page appears behind login, bot protection, or permission gate" }],
+      retryable: false,
+    });
+  }
+  if (scenario === "timeout") {
+    return sendError(res, 503, requestId, "FETCH_FAILED", "The page took too long to load.", {
+      details: [{ field: "url", reason: "Page fetch/capture timed out" }],
+      retryable: true,
+    });
+  }
+  if (scenario === "redirected") {
+    return sendError(res, 422, requestId, "FETCH_FAILED", "URL redirected away from a landing page.", {
+      details: [{ field: "url", reason: "Redirected to app/dashboard page instead of marketing page" }],
+      retryable: false,
+    });
+  }
+  if (scenario === "analysis-fail") {
+    return sendError(res, 422, requestId, "ANALYSIS_FAILED", "The page loaded but analysis did not complete.", {
+      details: [{ field: "analysis", reason: "Pass-1 model/output generation failed" }],
+      retryable: true,
+    });
+  }
+  if (scenario === "rate-limit") {
+    return sendError(res, 429, requestId, "RATE_LIMITED", "Too many requests. Please retry later.", {
+      details: [{ field: "request", reason: "Rate limit exceeded for this client" }],
+      retryable: true,
+    });
+  }
+
   const mode = typeof body.mode === "string" && body.mode.trim() ? body.mode.trim() : "balanced";
   const roastId = makeId("roast");
   const analysis = buildMockAnalysis({ url: body.url, mode });
@@ -267,6 +318,16 @@ async function handleCompose(req, res, requestId) {
     return sendError(res, 422, requestId, "COMPOSE_FAILED", "Pass-1 analysis is marked insufficient.", {
       details: [{ field: "analysis.meta.evidence_status", reason: "Cannot compose from insufficient evidence" }],
       retryable: false,
+    });
+  }
+
+  const composeFailFromRecord =
+    Boolean(targetRecord && targetRecord.input && getScenarioFromUrl(targetRecord.input.url) === "compose-fail");
+  const composeFailFromAnalysis = shouldForceComposeFailFromAnalysis(sourceAnalysis);
+  if (composeFailFromRecord || composeFailFromAnalysis) {
+    return sendError(res, 422, requestId, "COMPOSE_FAILED", "The analysis completed, but composition failed.", {
+      details: [{ field: "compose", reason: "Forced compose failure scenario for integration testing" }],
+      retryable: true,
     });
   }
 

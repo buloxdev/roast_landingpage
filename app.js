@@ -259,6 +259,13 @@
       primaryLabel: "Retry roast",
       secondaryLabel: "Use sample URL",
     },
+    rateLimited: {
+      kind: "rate-limit",
+      title: "Too many requests right now",
+      message: "We hit a temporary rate limit while generating your roast. Please retry in a moment.",
+      primaryLabel: "Retry roast",
+      secondaryLabel: "Try another URL",
+    },
     partialEvidence: {
       title: "Roast generated with limited evidence",
       message:
@@ -502,17 +509,56 @@
     return entry && typeof entry.reason === "string" ? entry.reason : "";
   }
 
+  function apiErrorContains(error, terms) {
+    if (!error || !Array.isArray(terms) || terms.length === 0) return false;
+    const textParts = [];
+    if (typeof error.message === "string") textParts.push(error.message);
+    if (Array.isArray(error.details)) {
+      for (let i = 0; i < error.details.length; i += 1) {
+        const detail = error.details[i];
+        if (detail && typeof detail.reason === "string") textParts.push(detail.reason);
+      }
+    }
+    const haystack = textParts.join(" ").toLowerCase();
+    return terms.some((term) => haystack.includes(String(term).toLowerCase()));
+  }
+
+  function getRunSourceBadge() {
+    if (state.screen === "home") return null;
+    if (state.screen === "analyzing") {
+      return {
+        label: "API",
+        title: `Using stub API at ${API_BASE_URL}`,
+      };
+    }
+    if (state.resultMeta && state.resultMeta.apiFallback) {
+      return {
+        label: "Fixture fallback",
+        title:
+          state.resultMeta.fallbackReason ||
+          `Using local fixture because ${API_BASE_URL} is unavailable`,
+      };
+    }
+    return {
+      label: "API",
+      title: `Results loaded from ${API_BASE_URL}`,
+    };
+  }
+
   function mapApiErrorToErrorState(error) {
     const code = String((error && error.code) || "").toUpperCase();
-    const message = String((error && error.message) || "").toLowerCase();
 
     if (code === "PAGE_BLOCKED") return getErrorStateFromTemplate(ERROR_COPY.blocked);
-    if (code === "FETCH_FAILED" && (message.includes("redirect") || message.includes("dashboard"))) {
+    if (
+      code === "FETCH_FAILED" &&
+      apiErrorContains(error, ["redirect", "dashboard", "/app", "marketing page"])
+    ) {
       return getErrorStateFromTemplate(ERROR_COPY.redirected);
     }
-    if (code === "FETCH_FAILED" || code === "RATE_LIMITED") {
+    if (code === "FETCH_FAILED") {
       return getErrorStateFromTemplate(ERROR_COPY.timeout);
     }
+    if (code === "RATE_LIMITED") return getErrorStateFromTemplate(ERROR_COPY.rateLimited);
     if (code === "ANALYSIS_FAILED") return getErrorStateFromTemplate(ERROR_COPY.analysisFailed);
     if (code === "COMPOSE_FAILED") return getErrorStateFromTemplate(ERROR_COPY.composeFailed);
     if (code === "INVALID_PASS2_PAYLOAD") return getErrorStateFromTemplate(ERROR_COPY.composeInvalid);
@@ -757,6 +803,7 @@
 
   function renderTopbar(meta) {
     const mode = getModeMeta(state.form.mode);
+    const sourceBadge = getRunSourceBadge();
     const right = meta && meta.rightHtml ? meta.rightHtml : "";
 
     return `
@@ -768,6 +815,13 @@
         <div class="topbar-right">
           ${state.form.url ? `<div class="url-pill">${escapeHtml(state.form.url)}</div>` : ""}
           <div class="mode-pill">${escapeHtml(mode.label)}</div>
+          ${
+            sourceBadge
+              ? `<div class="mode-pill mode-pill-soft" title="${escapeHtml(sourceBadge.title)}">${escapeHtml(
+                  sourceBadge.label
+                )}</div>`
+              : ""
+          }
           ${right}
         </div>
       </header>
@@ -980,6 +1034,8 @@
         ? "Wrong page type"
         : error.kind === "compose"
         ? "Results format error"
+        : error.kind === "rate-limit"
+        ? "Rate limited"
         : "Analysis error";
     const primaryAction =
       error.primaryAction || (error.primaryLabel && /retry/i.test(error.primaryLabel) ? "retry-analysis" : "back-home");
