@@ -319,6 +319,7 @@
       source: "fixture",
       apiFallback: false,
       fallbackReason: "",
+      roastId: "",
     },
     progress: 0,
     completedSteps: 0,
@@ -1032,6 +1033,10 @@
       mobile: "mobile",
       positives: "positives",
     };
+    const permalinkUrl =
+      state.resultMeta && state.resultMeta.roastId
+        ? `${API_BASE_URL}/roast/${encodeURIComponent(state.resultMeta.roastId)}`
+        : "https://roast.example/r/demo-123";
 
     const resultWarnings = getResultsWarnings(data);
     return `
@@ -1195,7 +1200,7 @@
                 <button class="action-btn" data-copy="${escapeHtml(
                   data.share_card_copy.score_text
                 )}">Copy score text</button>
-                <button class="action-btn" data-copy="https://roast.example/r/demo-123">Copy permalink</button>
+                <button class="action-btn" data-copy="${escapeHtml(permalinkUrl)}">Copy permalink</button>
                 <button class="action-btn" data-action="rerun">Roast another page</button>
               </div>
             </section>
@@ -1297,6 +1302,7 @@
       source: "fixture",
       apiFallback: false,
       fallbackReason: "",
+      roastId: "",
     };
     state.progress = 0;
     state.completedSteps = 0;
@@ -1322,6 +1328,7 @@
       source: "api",
       apiFallback: false,
       fallbackReason: "",
+      roastId: "",
     };
     state.runId += 1;
     const currentRunId = state.runId;
@@ -1339,6 +1346,7 @@
           source: "api",
           apiFallback: false,
           scenario: state.resultMeta.scenario,
+          roastId: apiRun.roastId || "",
         };
       } catch (error) {
         const mappedError = mapApiErrorToErrorState(error);
@@ -1364,6 +1372,7 @@
           source: "fixture",
           apiFallback: true,
           scenario: fallback.scenario || state.resultMeta.scenario,
+          roastId: "",
           fallbackReason:
             error.code === "API_UNAVAILABLE"
               ? `Could not reach ${API_BASE_URL} (${error.message}).`
@@ -1423,6 +1432,7 @@
     state.resultMeta.source = (runOutput && runOutput.source) || "fixture";
     state.resultMeta.apiFallback = Boolean(runOutput && runOutput.apiFallback);
     state.resultMeta.fallbackReason = (runOutput && runOutput.fallbackReason) || "";
+    state.resultMeta.roastId = (runOutput && runOutput.roastId) || "";
     state.screen = "results";
     state.analyzing = false;
     render();

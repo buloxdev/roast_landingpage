@@ -473,3 +473,36 @@ Run a quick end-to-end manual verification with both processes locally:
 2. Add server-side validation/fidelity checks (pass1 -> pass2 invariants)
 3. Implement share page rendering for `GET /roast/:id`
 4. Consider modularizing `app.js` after behavior is stable
+
+## Resume Update (2026-02-26, later): Stub QA scenarios + permalink wiring completed
+
+### Additional work completed
+- `server.js` now supports deterministic URL-triggered scenarios for frontend mapping tests:
+  - `https://blocked.example.com` -> `422 PAGE_BLOCKED`
+  - `https://timeout.example.com` -> `503 FETCH_FAILED` (retryable)
+  - `https://example.com/dashboard` (or `/app`) -> `422 FETCH_FAILED` (redirected/dashboard)
+  - `https://analysis-fail.example.com` -> `422 ANALYSIS_FAILED`
+  - `https://rate-limit.example.com` -> `429 RATE_LIMITED`
+  - `https://compose-fail.example.com` + subsequent `POST /compose` -> `422 COMPOSE_FAILED`
+- `app.js` permalink action now uses real roast IDs from API-backed runs:
+  - "Copy permalink" now copies `http://localhost:8787/roast/<roast_id>` when available
+  - fixture mode still uses fallback demo permalink
+
+### Files changed in this additional work
+- `server.js`
+- `app.js`
+- `context.md`
+
+### Validation completed
+- `node --check app.js` passed
+- `node --check server.js` passed
+- Escalated local HTTP checks verified expected endpoint status/code matrix above
+
+### Practical QA trigger URLs (for manual browser runs)
+- Normal API run: `https://example-saas.com`
+- Blocked: `https://blocked.example.com`
+- Timeout: `https://timeout.example.com`
+- Redirected/dashboard: `https://example.com/dashboard`
+- Analysis fail: `https://analysis-fail.example.com`
+- Rate limit: `https://rate-limit.example.com`
+- Compose fail seed: `https://compose-fail.example.com`
