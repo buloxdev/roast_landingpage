@@ -603,3 +603,33 @@ Run a quick end-to-end manual verification with both processes locally:
 3. Add `vercel.json` with the real `/api/*` rewrite destination
 4. Redeploy Vercel
 5. Verify the live site works against the hosted backend
+
+## Resume Update (2026-02-28, later): Real page fetch/extraction started in backend
+
+### What changed
+- `server.js` no longer relies only on `buildMockAnalysis()` for normal URLs.
+- For non-test URLs, `POST /analyze` now:
+  - fetches the submitted page HTML
+  - extracts headline, support copy, headings, paragraphs, CTA candidates, and proof/objection language signals
+  - builds heuristic category scores from extracted page content
+  - generates ranked pass1 issues, quick wins, positives, and a basic rewrite pack from that extraction
+- `POST /compose` now maps the pass1 analysis into a dynamic pass2 UI payload instead of always returning the same static sample values.
+
+### What did not change
+- Deterministic QA scenario URLs still work:
+  - blocked
+  - timeout
+  - redirected/dashboard
+  - analysis-fail
+  - rate-limit
+  - compose-fail
+- The pass1/pass2 contracts were kept intact.
+
+### Current caveat
+- This is still heuristic analysis, not full browser rendering or LLM-backed interpretation.
+- Extraction is based on fetched HTML/text, so JavaScript-heavy pages may still come back as partial evidence.
+
+### Next step after this code lands
+1. Validate local and hosted `/analyze` output against a few real landing pages
+2. Check whether the live Vercel + Render app now produces meaningfully different roasts for different URLs
+3. Tighten the UI copy and visual design after the backend behavior feels credible enough
