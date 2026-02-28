@@ -521,17 +521,19 @@ Run a quick end-to-end manual verification with both processes locally:
   - added guarded bootstrap/error rendering so startup failures show a visible error card instead of a blank page
 - `index.html`
   - removed eager loading of `utils/pass2-validation.js` and `utils/pass2-boundary.js` from the page bootstrap path
-  - added a temporary cache-busting script tag/query-string during local debugging
-  - added an HTML watchdog fallback so the page can show a mount failure instead of staying blank
+  - now loads only the main app bundle
+  - keeps a versioned `app.js` script URL to avoid stale Safari cache issues after local changes
 
 ### Current index bootstrap state
 - `index.html` now loads only:
-  - `./app.js`
+  - `./app.js?v=20260228c`
 - `app.js` safely degrades if `window.Pass2Validation` is absent, so startup no longer depends on the `utils/` scripts.
+- The temporary HTML watchdog fallback used during debugging was removed after the runtime issue was isolated.
 
 ### Validation completed today
 - `node --check app.js` passed after the fix
 - Local browser run confirmed the normal app now renders
+- Safari cache behavior was confirmed: removing the asset version query caused stale JS to be reused; restoring the versioned script URL fixed it
 - Stub API run confirmed the happy path works:
   - `https://example-saas.com` produced a full score/results flow
 
@@ -551,12 +553,13 @@ Run a quick end-to-end manual verification with both processes locally:
 
 ### What this confirms
 - UI startup is working locally
+- Safari is serving the current JS bundle correctly with the versioned script URL in place
 - `POST /analyze` and `POST /compose` are working against the stub API
 - Results rendering works
 - Error-state mapping works across the main deterministic stub scenarios
 
 ### Next step
-- Commit the runtime-fix/debugging changes (`app.js`, `index.html`, `context.md`)
+- Commit the final runtime/bootstrap fixes (`app.js`, `index.html`, `context.md`)
 - Then choose between:
   1. deploy the current prototype
   2. improve the stub/backend realism
