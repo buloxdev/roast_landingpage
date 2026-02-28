@@ -506,3 +506,58 @@ Run a quick end-to-end manual verification with both processes locally:
 - Analysis fail: `https://analysis-fail.example.com`
 - Rate limit: `https://rate-limit.example.com`
 - Compose fail seed: `https://compose-fail.example.com`
+
+## Resume Update (2026-02-28): Blank page fixed, local UI/API flow verified
+
+### Root cause of the blank page
+- The white/beige blank page was a frontend runtime error, not a server/CSS issue.
+- A raw backtick-formatted string inside the `renderHome()` template in `app.js` caused Safari to evaluate `analyze` as a JavaScript variable.
+- The on-page error surfaced as:
+  - `Error: Can't find variable: analyze`
+
+### Fixes applied
+- `app.js`
+  - removed the problematic inline backtick formatting in the home-screen copy
+  - added guarded bootstrap/error rendering so startup failures show a visible error card instead of a blank page
+- `index.html`
+  - removed eager loading of `utils/pass2-validation.js` and `utils/pass2-boundary.js` from the page bootstrap path
+  - added a temporary cache-busting script tag/query-string during local debugging
+  - added an HTML watchdog fallback so the page can show a mount failure instead of staying blank
+
+### Current index bootstrap state
+- `index.html` now loads only:
+  - `./app.js`
+- `app.js` safely degrades if `window.Pass2Validation` is absent, so startup no longer depends on the `utils/` scripts.
+
+### Validation completed today
+- `node --check app.js` passed after the fix
+- Local browser run confirmed the normal app now renders
+- Stub API run confirmed the happy path works:
+  - `https://example-saas.com` produced a full score/results flow
+
+### Manual scenario matrix verified in browser
+- `https://blocked.example.com`
+  - `Run error` / `We could not access that page`
+- `https://timeout.example.com`
+  - `Run error` / `The page took too long to load`
+- `https://compose-fail.example.com`
+  - `We scored the page, but could not format the results`
+- `https://analysis-fail.example.com`
+  - analysis-failure state rendered correctly
+- `https://rate-limit.example.com`
+  - rate-limit state rendered correctly
+- `https://example.com/dashboard`
+  - `That URL did not open a landing page`
+
+### What this confirms
+- UI startup is working locally
+- `POST /analyze` and `POST /compose` are working against the stub API
+- Results rendering works
+- Error-state mapping works across the main deterministic stub scenarios
+
+### Next step
+- Commit the runtime-fix/debugging changes (`app.js`, `index.html`, `context.md`)
+- Then choose between:
+  1. deploy the current prototype
+  2. improve the stub/backend realism
+  3. replace more of the stub with real backend implementation

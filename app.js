@@ -310,7 +310,36 @@
     },
   ];
 
-  const app = document.getElementById("app");
+  function getAppRoot() {
+    return document.getElementById("app");
+  }
+
+  function renderFatalBootstrapError(error) {
+    const root = getAppRoot();
+    const target = root || document.body;
+    const message =
+      error && typeof error.message === "string" && error.message
+        ? error.message
+        : "Unknown frontend bootstrap error";
+
+    target.innerHTML = `
+      <div class="shell">
+        <section class="error-shell">
+          <div class="error-card">
+            <div class="eyebrow">Frontend Error</div>
+            <h1>App failed to render</h1>
+            <p class="error-copy">The UI hit a runtime error before it could paint the normal screen.</p>
+            <div class="fixture-note">
+              <strong>Error:</strong> ${escapeHtml(message)}
+            </div>
+            <div class="error-actions">
+              <button class="primary-btn" type="button" onclick="window.location.reload()">Reload page</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    `;
+  }
 
   const state = {
     screen: "home",
@@ -929,7 +958,7 @@
             </form>
 
             <div class="fixture-note">
-              <strong>v1 shell behavior:</strong> real API calls (`/analyze`, `/compose`) with fixture fallback if the stub API is unavailable.
+              <strong>v1 shell behavior:</strong> real API calls (/analyze, /compose) with fixture fallback if the stub API is unavailable.
             </div>
           </section>
         </div>
@@ -1295,6 +1324,11 @@
   }
 
   function render() {
+    const app = getAppRoot();
+    if (!app) {
+      throw new Error('Missing #app mount node in index.html');
+    }
+
     if (state.screen === "home") {
       app.innerHTML = renderHome();
       return;
@@ -1553,6 +1587,26 @@
     });
   }
 
-  render();
-  bindEvents();
+  function bootstrap() {
+    render();
+    bindEvents();
+  }
+
+  window.addEventListener("error", function (event) {
+    const error = event && event.error ? event.error : new Error(event && event.message ? event.message : "Window error");
+    renderFatalBootstrapError(error);
+  });
+
+  window.addEventListener("unhandledrejection", function (event) {
+    const reason = event ? event.reason : null;
+    const error = reason instanceof Error ? reason : new Error(String(reason || "Unhandled promise rejection"));
+    renderFatalBootstrapError(error);
+  });
+
+  try {
+    bootstrap();
+  } catch (error) {
+    renderFatalBootstrapError(error);
+    throw error;
+  }
 })();
