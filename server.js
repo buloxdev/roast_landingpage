@@ -5,13 +5,28 @@ const fs = require("fs");
 const path = require("path");
 
 const PORT = Number(process.env.PORT || 8787);
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const OPENAI_BASE_URL = String(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
+const OPENAI_PASS1_MODEL = process.env.OPENAI_PASS1_MODEL || "gpt-4o-mini";
+const OPENAI_PASS2_MODEL = process.env.OPENAI_PASS2_MODEL || "gpt-4o-mini";
 
 const PASS2_SAMPLE_PATH = path.join(__dirname, "fixtures", "pass2-ui.sample.json");
 const PASS1_SCHEMA_PATH = path.join(__dirname, "schemas", "pass1-analysis-contract.json");
+const PASS2_SCHEMA_PATH = path.join(__dirname, "schemas", "pass2-ui-contract.json");
+const PASS1_SYSTEM_PROMPT_PATH = path.join(__dirname, "prompts", "pass1-system.txt");
+const PASS1_TEMPLATE_PATH = path.join(__dirname, "prompts", "pass1-analysis-template.txt");
+const PASS2_SYSTEM_PROMPT_PATH = path.join(__dirname, "prompts", "pass2-system.txt");
+const PASS2_TEMPLATE_PATH = path.join(__dirname, "prompts", "pass2-compose-template.txt");
 
 const pass2Sample = JSON.parse(fs.readFileSync(PASS2_SAMPLE_PATH, "utf8"));
 const pass1Schema = JSON.parse(fs.readFileSync(PASS1_SCHEMA_PATH, "utf8"));
+const pass2Schema = JSON.parse(fs.readFileSync(PASS2_SCHEMA_PATH, "utf8"));
+const pass1SystemPrompt = fs.readFileSync(PASS1_SYSTEM_PROMPT_PATH, "utf8");
+const pass1Template = fs.readFileSync(PASS1_TEMPLATE_PATH, "utf8");
+const pass2SystemPrompt = fs.readFileSync(PASS2_SYSTEM_PROMPT_PATH, "utf8");
+const pass2Template = fs.readFileSync(PASS2_TEMPLATE_PATH, "utf8");
 const pass1RequiredKeys = Array.isArray(pass1Schema.required) ? pass1Schema.required : [];
+const pass2ValidationApi = require("./utils/pass2-validation.js");
 const CATEGORY_WEIGHTS = [
   ["Clarity of offer", 20],
   ["Target audience clarity", 10],
@@ -244,6 +259,80 @@ function inferOutcome(heroText, description) {
   return "get a clearer result";
 }
 
+function hasOpenAiConfigured() {
+  return Boolean(OPENAI_API_KEY);
+}
+
+function asJsonString(value) {
+  return JSON.stringify(value, null, 2);
+}
+
+function renderTemplate(template, replacements) {
+  return String(template).replace(/\{\{(\w+)\}\}/g, function replaceToken(_match, key) {
+    return Object.prototype.hasOwnProperty.call(replacements, key) ? String(replacements[key]) : "";
+  });
+}
+
+function extractMessageContent(message) {
+  if (!message) return "";
+  if (typeof message.content === "string") return message.content;
+  if (Array.isArray(message.content)) {
+    return message.content
+      .map((part) => {
+        if (!part) return "";
+        if (typeof part === "string") return part;
+        if (typeof part.text === "string") return part.text;
+        return "";
+      })
+      .join("");
+  }
+  return "";
+}
+
+async function callOpenAiJson({ model, systemPrompt, userPrompt, responseFormat, temperature = 0.3 }) {
+  const response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model,
+      temperature,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: responseFormat,
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message =
+      (payload && payload.error && payload.error.message) ||
+      `OpenAI request failed with status ${response.status}`;
+    const error = new Error(message);
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+
+  const rawContent =
+    payload &&
+    Array.isArray(payload.choices) &&
+    payload.choices[0] &&
+    payload.choices[0].message
+      ? extractMessageContent(payload.choices[0].message)
+      : "";
+
+  if (!rawContent) {
+    throw new Error("OpenAI response did not include JSON content.");
+  }
+
+  return JSON.parse(rawContent);
+}
+
 function sendJson(res, statusCode, body) {
   const payload = JSON.stringify(body);
   res.writeHead(statusCode, {
@@ -410,6 +499,60 @@ function buildExtraction(html, finalUrl) {
     visibleText,
     trustMentions,
     objectionMentions,
+  };
+}
+
+function buildPromptEvidence(extraction, requestedUrl, mode) {
+  const quotedSnippets = uniqueNonEmpty(
+    [extraction.heroHeadline, extraction.heroSupport].concat(extraction.ctas.slice(0, 3)).concat(extraction.paragraphs.slice(0, 4)),
+    8
+  );
+
+  return {
+    requested_url: requestedUrl,
+    normalized_url: extraction.finalUrl,
+    roast_mode: mode,
+    fetch_status: "success",
+    extraction_status: "parsed_html",
+    evidence_completeness_summary:
+      extraction.heroHeadline && extraction.ctas.length
+        ? "Core landing-page evidence available (headline, support copy, CTA, and body text)."
+        : "Partial landing-page evidence available; some key signals may be missing.",
+    page_meta_json: asJsonString({
+      title: extraction.title,
+      description: extraction.description,
+      final_url: extraction.finalUrl,
+    }),
+    extracted_copy_json: asJsonString({
+      hero_headline: extraction.heroHeadline,
+      hero_support: extraction.heroSupport,
+      paragraph_samples: extraction.paragraphs.slice(0, 6),
+    }),
+    cta_elements_json: asJsonString({
+      detected_ctas: extraction.ctas.slice(0, 8),
+    }),
+    structure_json: asJsonString({
+      h1s: extraction.h1s,
+      h2s: extraction.h2s,
+      paragraph_count: extraction.paragraphs.length,
+    }),
+    trust_elements_json: asJsonString({
+      trust_signal_matches: extraction.trustMentions,
+      objection_signal_matches: extraction.objectionMentions,
+    }),
+    desktop_observations_json: asJsonString([
+      extraction.heroHeadline ? "Hero headline detected." : "No clear hero headline detected.",
+      extraction.ctas[0] ? `Primary CTA candidate detected: "${truncate(extraction.ctas[0], 48)}".` : "No obvious primary CTA detected.",
+      extraction.h2s.length ? `Detected ${extraction.h2s.length} secondary headings, suggesting page structure exists.` : "Very few section headings were detected.",
+    ]),
+    mobile_observations_json: asJsonString([
+      "Mobile findings are inferred from text density and CTA placement clues, not real browser rendering.",
+      extraction.heroHeadline && extraction.heroHeadline.split(/\s+/).length > 14
+        ? "Hero headline appears long enough to risk heavy wrapping on small screens."
+        : "Hero headline length looks manageable for mobile.",
+    ]),
+    quoted_snippets_json: asJsonString(quotedSnippets),
+    errors_json: asJsonString([]),
   };
 }
 
@@ -719,6 +862,108 @@ function buildRealAnalysis({ url, mode, extraction }) {
   };
 }
 
+function mergePass1Analysis(base, candidate, metaOverrides) {
+  const merged = clone(base);
+  const next = candidate && typeof candidate === "object" ? candidate : {};
+  const summary = next.summary && typeof next.summary === "object" ? next.summary : {};
+  const candidateScores = Array.isArray(next.category_scores) ? next.category_scores : [];
+  const scoreMap = new Map();
+
+  for (const item of candidateScores) {
+    if (!item || typeof item !== "object") continue;
+    const category = cleanText(item.category);
+    if (!category) continue;
+    scoreMap.set(category, item);
+  }
+
+  merged.meta = {
+    ...merged.meta,
+    ...(next.meta && typeof next.meta === "object" ? next.meta : {}),
+    ...metaOverrides,
+  };
+
+  merged.summary = {
+    ...merged.summary,
+    ...(summary && typeof summary === "object" ? summary : {}),
+  };
+
+  if (summary.overall_score != null && merged.summary.score_overall == null) {
+    merged.summary.score_overall = Number(summary.overall_score) || merged.summary.score_overall;
+  }
+
+  merged.summary.score_overall = clamp(Number(merged.summary.score_overall) || 0, 0, 100);
+  merged.summary.score_band = cleanText(merged.summary.score_band || scoreBandFromOverall(merged.summary.score_overall));
+  merged.summary.one_liner = truncate(merged.summary.one_liner || base.summary.one_liner, 180);
+
+  if (Array.isArray(next.issues) && next.issues.length) {
+    merged.issues = next.issues.slice(0, 5).map((issue, index) => ({
+      rank: index + 1,
+      category: cleanText(issue.category || base.issues[index] && base.issues[index].category || "Clarity of offer"),
+      title: cleanText(issue.title || base.issues[index] && base.issues[index].title || "Landing-page issue"),
+      impact: /low/i.test(issue.impact) ? "Low" : /medium/i.test(issue.impact) ? "Medium" : "High",
+      confidence: /low/i.test(issue.confidence) ? "Low" : /medium/i.test(issue.confidence) ? "Medium" : "High",
+      problem: cleanText(issue.problem || base.issues[index] && base.issues[index].problem),
+      why_it_hurts: cleanText(issue.why_it_hurts || base.issues[index] && base.issues[index].why_it_hurts),
+      evidence: Array.isArray(issue.evidence) && issue.evidence.length
+        ? issue.evidence.map((entry) => ({
+            type: entry && entry.type === "ui_observation" ? "ui_observation" : "quote",
+            value: cleanText(entry && entry.value),
+          }))
+        : clone(base.issues[index] && base.issues[index].evidence || [{ type: "ui_observation", value: "Limited supporting evidence available." }]),
+      fix: cleanText(issue.fix || base.issues[index] && base.issues[index].fix),
+      example_rewrite: cleanText(issue.example_rewrite || base.issues[index] && base.issues[index].example_rewrite || ""),
+    }));
+  }
+
+  merged.category_scores = CATEGORY_WEIGHTS.map(([category, weight], index) => {
+    const source = scoreMap.get(category) || {};
+    const score = source.score_0_to_10 != null ? source.score_0_to_10 : source.score;
+    return {
+      category,
+      score: clamp(Number(score) || base.category_scores[index].score, 0, 10),
+      weight,
+      display_score: `${clamp(Number(score) || base.category_scores[index].score, 0, 10)}/10 (weight ${weight})`,
+      note: cleanText(source.note || base.category_scores[index].note),
+    };
+  });
+
+  if (Array.isArray(next.quick_wins) && next.quick_wins.length) {
+    merged.quick_wins = fillToLength(next.quick_wins, base.quick_wins, 4);
+  }
+
+  if (next.rewrite_pack && typeof next.rewrite_pack === "object") {
+    merged.rewrite_pack = {
+      headlines: fillToLength(next.rewrite_pack.headlines, base.rewrite_pack.headlines, 3),
+      subheadlines: fillToLength(next.rewrite_pack.subheadlines, base.rewrite_pack.subheadlines, 2),
+      ctas: fillToLength(next.rewrite_pack.ctas, base.rewrite_pack.ctas, 5),
+    };
+  }
+
+  if (next.mobile_roast && typeof next.mobile_roast === "object") {
+    const mobileScore = next.mobile_roast.score_0_to_10 != null ? next.mobile_roast.score_0_to_10 : next.mobile_roast.score;
+    merged.mobile_roast = {
+      score: clamp(Number(mobileScore) || base.mobile_roast.score, 0, 10),
+      findings: fillToLength(next.mobile_roast.findings, base.mobile_roast.findings, 3),
+    };
+  }
+
+  if (Array.isArray(next.positives) && next.positives.length) {
+    merged.positives = fillToLength(next.positives, base.positives, 3);
+  }
+
+  if (next.share && typeof next.share === "object") {
+    merged.share = {
+      ...base.share,
+      ...next.share,
+      quote: truncate(next.share.quote || base.share.quote || base.summary.one_liner, 140),
+      top_issues: fillToLength(next.share.top_issues, base.issues.map((issue) => issue.title), 3),
+      score_text: next.share.score_text || `Roast Score: ${merged.summary.score_overall}/100`,
+    };
+  }
+
+  return merged;
+}
+
 function buildRoastResource(record) {
   return {
     id: record.id,
@@ -840,6 +1085,60 @@ function buildPass2Ui(analysis, mode) {
   return ui;
 }
 
+async function buildAiPass1Analysis({ requestedUrl, mode, extraction, fallbackAnalysis }) {
+  const prompt = renderTemplate(pass1Template, buildPromptEvidence(extraction, requestedUrl, mode));
+  const raw = await callOpenAiJson({
+    model: OPENAI_PASS1_MODEL,
+    systemPrompt: pass1SystemPrompt,
+    userPrompt: prompt,
+    responseFormat: { type: "json_object" },
+    temperature: 0.4,
+  });
+
+  return mergePass1Analysis(fallbackAnalysis, raw, {
+    provider: "openai",
+    provider_model: OPENAI_PASS1_MODEL,
+    evidence_status:
+      raw && raw.meta && typeof raw.meta.evidence_status === "string"
+        ? raw.meta.evidence_status
+        : fallbackAnalysis.meta.evidence_status,
+  });
+}
+
+async function buildAiPass2Ui({ requestedUrl, mode, analysis, fallbackUi }) {
+  const roastModeLabel =
+    mode === "fix-first" ? "Fix-First" : mode === "balanced" ? "Balanced" : "Brutal";
+  const prompt = renderTemplate(pass2Template, {
+    requested_url: requestedUrl,
+    roast_mode_label: roastModeLabel,
+    pass1_analysis_json: asJsonString(analysis),
+  });
+
+  const raw = await callOpenAiJson({
+    model: OPENAI_PASS2_MODEL,
+    systemPrompt: pass2SystemPrompt,
+    userPrompt: prompt,
+    responseFormat: {
+      type: "json_schema",
+      json_schema: {
+        name: "pass2_ui_contract",
+        strict: true,
+        schema: pass2Schema,
+      },
+    },
+    temperature: 0.5,
+  });
+
+  const validation = pass2ValidationApi.validatePass2Payload(raw);
+  if (!validation.ok) {
+    const error = new Error("OpenAI Pass 2 output failed pass2 validation.");
+    error.validation = validation;
+    throw error;
+  }
+
+  return raw || fallbackUi;
+}
+
 async function handleAnalyze(req, res, requestId) {
   let body;
   try {
@@ -908,7 +1207,32 @@ async function handleAnalyze(req, res, requestId) {
   }
 
   const extraction = buildExtraction(snapshot.html, snapshot.finalUrl);
-  const analysis = buildRealAnalysis({ url: body.url, mode, extraction });
+  const fallbackAnalysis = buildRealAnalysis({ url: body.url, mode, extraction });
+  let analysis = fallbackAnalysis;
+
+  if (hasOpenAiConfigured()) {
+    try {
+      analysis = await buildAiPass1Analysis({
+        requestedUrl: body.url,
+        mode,
+        extraction,
+        fallbackAnalysis,
+      });
+    } catch (error) {
+      analysis = clone(fallbackAnalysis);
+      analysis.meta = {
+        ...analysis.meta,
+        provider: "heuristic_fallback",
+        provider_error: truncate(error && error.message ? error.message : "OpenAI Pass 1 failed", 160),
+      };
+    }
+  } else {
+    analysis.meta = {
+      ...analysis.meta,
+      provider: "heuristic",
+    };
+  }
+
   const timestamp = nowIso();
   const record = {
     id: roastId,
@@ -995,7 +1319,26 @@ async function handleCompose(req, res, requestId) {
     });
   }
 
-  const ui = buildPass2Ui(sourceAnalysis, body.mode);
+  const fallbackUi = buildPass2Ui(sourceAnalysis, body.mode);
+  let ui = fallbackUi;
+
+  if (hasOpenAiConfigured()) {
+    try {
+      ui = await buildAiPass2Ui({
+        requestedUrl:
+          targetRecord && targetRecord.input && targetRecord.input.url
+            ? targetRecord.input.url
+            : sourceAnalysis && sourceAnalysis.meta && sourceAnalysis.meta.source_url
+            ? sourceAnalysis.meta.source_url
+            : "https://example.com",
+        mode: typeof body.mode === "string" ? body.mode : "balanced",
+        analysis: sourceAnalysis,
+        fallbackUi,
+      });
+    } catch (error) {
+      ui = fallbackUi;
+    }
+  }
 
   if (targetRecord) {
     targetRecord.ui = clone(ui);
@@ -1077,6 +1420,7 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, {
         ok: true,
         service: "roast-landingpage-api",
+        openai_configured: hasOpenAiConfigured(),
         timestamp: nowIso(),
       });
       return;

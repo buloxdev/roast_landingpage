@@ -78,6 +78,23 @@ cd /Users/anthonyaguilar/Documents/agent_eval/roast_landingpage
 npm run api:stub
 ```
 
+Optional: enable OpenAI-backed pass1/pass2
+
+```bash
+cd /Users/anthonyaguilar/Documents/agent_eval/roast_landingpage
+cp .env.example .env
+```
+
+Then set:
+- `OPENAI_API_KEY`
+- optional model overrides:
+  - `OPENAI_PASS1_MODEL`
+  - `OPENAI_PASS2_MODEL`
+
+Notes:
+- if no OpenAI key is present, the backend falls back to the built-in heuristic analyzer
+- if the OpenAI call fails, the backend currently falls back to the heuristic path instead of hard-failing
+
 ## What Is Finished vs Not Finished
 
 Finished:
@@ -91,7 +108,7 @@ Finished:
 - Vercel frontend deploy
 
 Not finished:
-- Real backend implementation for `/analyze`, `/compose`, `/roast/:id`
+- Durable, fully model-backed backend behavior for `/analyze`, `/compose`, `/roast/:id`
 - Real scraping/extraction pipeline
 - Pass1 strict schema hardening (deferred until real outputs)
 - Hosted backend wiring from Vercel -> Render
@@ -99,10 +116,10 @@ Not finished:
 
 ## Recommended Next Steps
 
-1. Deploy the backend stub to Render using `render.yaml`
-2. Add a Vercel `/api/*` rewrite to the Render backend
-3. Verify the live site against the hosted backend
-4. Replace stub analysis with real page fetching/extraction
+1. Set `OPENAI_API_KEY` in the backend environment
+2. Verify OpenAI-backed pass1/pass2 output quality on several real pages
+3. Improve extraction quality for JS-heavy sites
+4. Tighten UI tone and visual design
 5. Implement durable persistence for `GET /roast/:id` share flow
 
 ## Source of Truth Files

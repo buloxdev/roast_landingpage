@@ -633,3 +633,37 @@ Run a quick end-to-end manual verification with both processes locally:
 1. Validate local and hosted `/analyze` output against a few real landing pages
 2. Check whether the live Vercel + Render app now produces meaningfully different roasts for different URLs
 3. Tighten the UI copy and visual design after the backend behavior feels credible enough
+
+## Resume Update (2026-02-28, later): Optional OpenAI-backed pass1/pass2 added
+
+### What changed
+- `server.js` now supports a real OpenAI-backed pipeline when `OPENAI_API_KEY` is present.
+- The backend reads:
+  - `OPENAI_API_KEY`
+  - `OPENAI_PASS1_MODEL` (default `gpt-4o-mini`)
+  - `OPENAI_PASS2_MODEL` (default `gpt-4o-mini`)
+- Existing prompt files are now wired into the backend:
+  - `prompts/pass1-system.txt`
+  - `prompts/pass1-analysis-template.txt`
+  - `prompts/pass2-system.txt`
+  - `prompts/pass2-compose-template.txt`
+
+### Runtime behavior
+- If `OPENAI_API_KEY` is configured:
+  - `/analyze` uses the extracted page evidence plus OpenAI for pass1 JSON
+  - `/compose` uses OpenAI to generate pass2 UI JSON against the frozen pass2 schema
+- If `OPENAI_API_KEY` is not configured:
+  - the backend falls back to the current heuristic analysis/composition path
+- If OpenAI fails at runtime:
+  - the backend currently falls back to the heuristic path rather than hard-failing the request
+
+### Supporting files added/updated
+- `.env.example`
+- `.gitignore`
+- `README.md`
+
+### Operational next step
+1. Set `OPENAI_API_KEY` on the Render backend service
+2. Redeploy/restart Render
+3. Verify `/health` returns `openai_configured: true`
+4. Re-test several real landing pages and compare output quality against the heuristic path
