@@ -564,3 +564,42 @@ Run a quick end-to-end manual verification with both processes locally:
   1. deploy the current prototype
   2. improve the stub/backend realism
   3. replace more of the stub with real backend implementation
+
+## Resume Update (2026-02-28, later): Frontend deployed, backend deploy prep added
+
+### Deployment status
+- Frontend is live on Vercel:
+  - `https://roastlandingpage.vercel.app`
+- Current live frontend is still effectively frontend-only because the hosted backend has not been deployed yet.
+- The deployed site remains usable because the app still has fixture fallback when the API is unavailable.
+
+### Deployment architecture chosen
+- Frontend: Vercel
+- Backend API: Render web service
+- Frontend API path strategy:
+  - local browser on `localhost` / `127.0.0.1` -> `http://localhost:8787`
+  - deployed browser -> `/api`
+  - optional override remains available through `window.ROAST_API_BASE_URL`
+
+### Code/config added for backend hosting
+- `server.js`
+  - added `GET /health`
+  - startup log now reflects hosted binding (`0.0.0.0:${PORT}`)
+- `app.js`
+  - API base resolution now supports local-vs-hosted behavior cleanly
+- `render.yaml`
+  - added for Render backend deployment
+- `docs/deployment.md`
+  - added exact backend deploy and Vercel rewrite steps
+
+### Important deployment note
+- A placeholder `vercel.json` rewrite file was intentionally **not** kept in the repo.
+- Reason: committing a fake backend destination would break the next Vercel deploy.
+- The real `vercel.json` should only be added after the actual Render backend URL is known.
+
+### Next concrete step
+1. Deploy the current backend stub to Render using `render.yaml`
+2. Get the real Render service URL
+3. Add `vercel.json` with the real `/api/*` rewrite destination
+4. Redeploy Vercel
+5. Verify the live site works against the hosted backend

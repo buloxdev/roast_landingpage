@@ -6,11 +6,13 @@ Users paste a URL, the system analyzes copy/CTA/structure/messaging, and returns
 
 ## Current Status
 
-This repo currently contains a **static frontend v1 shell** plus the core planning/contract assets needed for backend integration.
+This repo currently contains a **working frontend v1 shell**, a **stub backend API**, and the core planning/contract assets needed for real backend integration.
 
 Implemented in `main`:
 - Desktop-first UI flow: `Home/Input -> Analyzing -> Results`
 - Results page renders from pass2 fixture JSON
+- Stub backend API for `POST /analyze`, `POST /compose`, `GET /roast/:id`
+- Live frontend deploy on Vercel
 - Prompt pack for pass1/pass2 model calls
 - API contract (`POST /analyze`, `POST /compose`, `GET /roast/:id`)
 - Edge-case fixtures + error/loading copy
@@ -27,7 +29,11 @@ Implemented in `main`:
 ## Repo Structure
 
 - `index.html` / `styles.css` / `app.js`
-  - Static frontend prototype (desktop-first results experience + shell flow)
+  - Frontend app (desktop-first results experience + shell flow)
+- `server.js`
+  - Stub backend API service
+- `render.yaml`
+  - Render web-service blueprint for backend deploy
 - `fixtures/`
   - Pass2 UI fixtures for sample + edge cases
 - `schemas/`
@@ -38,16 +44,15 @@ Implemented in `main`:
 - `docs/`
   - `v1-decisions.md`
   - `api-contract.md`
+  - `deployment.md`
   - `error-copy.md`
   - `validation-rules.md`
 - `context.md`
   - Current orchestration snapshot / pause-resume state
 
-## Run the Static Prototype
+## Run Locally
 
-You can open `index.html` directly, but fixture fetch may fail on `file://`. The app includes a fallback embedded fixture so the results screen still renders.
-
-Recommended (serve locally):
+Frontend only:
 
 ```bash
 cd /Users/anthonyaguilar/Documents/agent_eval/roast_landingpage
@@ -57,29 +62,48 @@ python3 -m http.server 8090
 Then open:
 - [http://localhost:8090](http://localhost:8090)
 
+Full local flow:
+
+Terminal 1:
+
+```bash
+cd /Users/anthonyaguilar/Documents/agent_eval/roast_landingpage
+python3 -m http.server 8090
+```
+
+Terminal 2:
+
+```bash
+cd /Users/anthonyaguilar/Documents/agent_eval/roast_landingpage
+npm run api:stub
+```
+
 ## What Is Finished vs Not Finished
 
 Finished:
 - UI shell flow and desktop-first results layout
+- Stub backend API + deterministic error scenarios
 - Prompt pack (v1)
 - API contract (v1)
 - Edge-case fixtures
 - Error/loading copy spec
 - Validation/QA rules spec
+- Vercel frontend deploy
 
 Not finished:
 - Real backend implementation for `/analyze`, `/compose`, `/roast/:id`
 - Real scraping/extraction pipeline
 - Pass1 strict schema hardening (deferred until real outputs)
-- Share page/permalink backend wiring
+- Hosted backend wiring from Vercel -> Render
+- Share page/permalink persistence beyond in-memory stub
 
 ## Recommended Next Steps
 
-1. Add UI URL validation + explicit error states using `docs/error-copy.md`
-2. Replace fake analysis flow with real `POST /analyze` + `POST /compose` calls
-3. Keep fixture fallback path for offline/frontend testing
-4. Add response validation (pass2 schema) before rendering
-5. Implement persistence + `GET /roast/:id` share flow
+1. Deploy the backend stub to Render using `render.yaml`
+2. Add a Vercel `/api/*` rewrite to the Render backend
+3. Verify the live site against the hosted backend
+4. Replace stub analysis with real page fetching/extraction
+5. Implement durable persistence for `GET /roast/:id` share flow
 
 ## Source of Truth Files
 

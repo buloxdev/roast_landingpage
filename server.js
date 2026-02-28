@@ -415,6 +415,15 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "GET" && pathname === "/health") {
+      sendJson(res, 200, {
+        ok: true,
+        service: "roast-landingpage-api",
+        timestamp: nowIso(),
+      });
+      return;
+    }
+
     if (req.method === "GET" && pathname.startsWith("/roast/")) {
       const roastId = decodeURIComponent(pathname.slice("/roast/".length));
       if (!roastId) {
@@ -436,7 +445,7 @@ const server = http.createServer(async (req, res) => {
 
 if (require.main === module) {
   server.listen(PORT, () => {
-    console.log(`Stub API listening on http://localhost:${PORT}`);
+    console.log(`Stub API listening on 0.0.0.0:${PORT}`);
   });
 }
 

@@ -195,7 +195,20 @@
     strong: "./fixtures/pass2-ui.strong-page.json",
     mobile: "./fixtures/pass2-ui.mobile-issues.json",
   };
-  const API_BASE_URL = String(window.ROAST_API_BASE_URL || "http://localhost:8787").replace(/\/+$/, "");
+  function resolveApiBaseUrl() {
+    if (window.ROAST_API_BASE_URL) {
+      return String(window.ROAST_API_BASE_URL).replace(/\/+$/, "");
+    }
+
+    const hostname = window.location && window.location.hostname ? window.location.hostname : "";
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "http://localhost:8787";
+    }
+
+    return "/api";
+  }
+
+  const API_BASE_URL = resolveApiBaseUrl();
   const ERROR_COPY = {
     emptyUrl: "Paste a landing page URL to start the roast.",
     invalidUrl:
