@@ -390,6 +390,27 @@ function sendError(res, statusCode, requestId, code, message, options = {}) {
   sendJson(res, statusCode, body);
 }
 
+function logServerError(scope, requestId, error, extra = {}) {
+  const details = {
+    requestId,
+    scope,
+    message: error && error.message ? error.message : "Unknown error",
+    code: error && error.code ? error.code : "",
+    status: error && error.status ? error.status : "",
+    ...(extra || {}),
+  };
+
+  if (error && error.payload && error.payload.error) {
+    details.openai = {
+      type: error.payload.error.type || "",
+      code: error.payload.error.code || "",
+      message: error.payload.error.message || "",
+    };
+  }
+
+  console.error(`[${scope}]`, JSON.stringify(details));
+}
+
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     let raw = "";
@@ -1261,6 +1282,13 @@ async function handleAnalyze(req, res, requestId) {
       fallbackAnalysis,
     });
   } catch (error) {
+    logServerError("analyze", requestId, error, {
+      url: body.url,
+      mode,
+      style,
+      pass: "pass1",
+      model: OPENAI_PASS1_MODEL,
+    });
     const code = error && error.code === "OPENAI_NOT_CONFIGURED" ? "INTERNAL_ERROR" : "ANALYSIS_FAILED";
     const message =
       error && error.code === "OPENAI_NOT_CONFIGURED"
@@ -1380,6 +1408,11 @@ async function handleCompose(req, res, requestId) {
       fallbackUi,
     });
   } catch (error) {
+    logServerError("compose", requestId, error, {
+      roast_id: typeof body.roast_id === "string" ? body.roast_id : "",
+      pass: "pass2",
+      model: OPENAI_PASS2_MODEL,
+    });
     const code = error && error.code === "OPENAI_NOT_CONFIGURED" ? "INTERNAL_ERROR" : "COMPOSE_FAILED";
     const message =
       error && error.code === "OPENAI_NOT_CONFIGURED"
