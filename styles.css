@@ -766,6 +766,12 @@ button {
   margin-bottom: 14px;
 }
 
+.input-card-badges {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
 .input-card-head h2 {
   margin: 2px 0 6px;
   font-size: 24px;
@@ -1247,6 +1253,10 @@ button {
 
   .input-card-head {
     flex-direction: column;
+  }
+
+  .input-card-badges {
+    justify-items: start;
   }
 
   .mode-option {

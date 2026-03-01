@@ -199,12 +199,6 @@
     if (window.ROAST_API_BASE_URL) {
       return String(window.ROAST_API_BASE_URL).replace(/\/+$/, "");
     }
-
-    const hostname = window.location && window.location.hostname ? window.location.hostname : "";
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return "http://localhost:8787";
-    }
-
     return "/api";
   }
 
@@ -322,6 +316,23 @@
       hint: "Action-oriented roast",
     },
   ];
+  const STYLE_OPTIONS = [
+    {
+      value: "sharp",
+      label: "Sharp",
+      hint: "Witty, clean, still useful",
+    },
+    {
+      value: "deadpan",
+      label: "Deadpan",
+      hint: "Dry and understated",
+    },
+    {
+      value: "unhinged",
+      label: "Unhinged",
+      hint: "Chaotic, but still actionable",
+    },
+  ];
 
   function getAppRoot() {
     return document.getElementById("app");
@@ -359,6 +370,7 @@
     form: {
       url: "https://example-saas.com",
       mode: "brutal",
+      style: "sharp",
     },
     formError: "",
     errorState: null,
@@ -403,6 +415,10 @@
 
   function getModeMeta(modeValue) {
     return MODE_OPTIONS.find((option) => option.value === modeValue) || MODE_OPTIONS[0];
+  }
+
+  function getStyleMeta(styleValue) {
+    return STYLE_OPTIONS.find((option) => option.value === styleValue) || STYLE_OPTIONS[0];
   }
 
   function normalizeUrlInput(raw) {
@@ -611,8 +627,8 @@
     return null;
   }
 
-  async function runApiRoast(url, mode) {
-    const analyze = await postJson("/analyze", { url, mode, persist: true }, "analyze");
+  async function runApiRoast(url, mode, style) {
+    const analyze = await postJson("/analyze", { url, mode, style, persist: true }, "analyze");
     if (!isObject(analyze) || !isObject(analyze.analysis)) {
       throw {
         kind: "api",
@@ -629,6 +645,7 @@
         roast_id: analyze.roast_id,
         analysis: analyze.analysis,
         mode,
+        style,
       },
       "compose"
     );
@@ -845,6 +862,7 @@
 
   function renderTopbar(meta) {
     const mode = getModeMeta(state.form.mode);
+    const style = getStyleMeta(state.form.style);
     const sourceBadge = getRunSourceBadge();
     const right = meta && meta.rightHtml ? meta.rightHtml : "";
     const showUrl = !(meta && meta.hideUrl) && state.form.url;
@@ -858,6 +876,7 @@
         <div class="topbar-right">
           ${showUrl ? `<div class="url-pill">${escapeHtml(state.form.url)}</div>` : ""}
           <div class="mode-pill">${escapeHtml(mode.label)}</div>
+          <div class="mode-pill mode-pill-soft">${escapeHtml(style.label)}</div>
           ${
             sourceBadge
               ? `<div class="mode-pill mode-pill-soft" title="${escapeHtml(sourceBadge.title)}">${escapeHtml(
@@ -873,6 +892,7 @@
 
   function renderHome() {
     const mode = getModeMeta(state.form.mode);
+    const style = getStyleMeta(state.form.style);
     const hasUrlError = Boolean(state.formError);
     return `
       <div class="shell">
@@ -926,7 +946,10 @@
                 <h2>Drop in your landing page URL</h2>
                 <p>We will review the promise, the pitch, the CTA, and the trust signals, then show you where the page is leaking conversions.</p>
               </div>
-              <div class="mode-pill mode-pill-soft">${escapeHtml(mode.hint)}</div>
+              <div class="input-card-badges">
+                <div class="mode-pill mode-pill-soft">${escapeHtml(mode.hint)}</div>
+                <div class="mode-pill mode-pill-soft">${escapeHtml(style.hint)}</div>
+              </div>
             </div>
 
             <form data-form="roast" class="input-form" novalidate>
@@ -961,6 +984,25 @@
                       role="tab"
                       aria-selected="${active ? "true" : "false"}"
                       data-mode-value="${escapeHtml(option.value)}"
+                    >
+                      <span>${escapeHtml(option.label)}</span>
+                      <small>${escapeHtml(option.hint)}</small>
+                    </button>
+                  `;
+                }).join("")}
+              </div>
+
+              <div class="field-label">Roast style</div>
+              <div class="mode-selector" role="tablist" aria-label="Roast style">
+                ${STYLE_OPTIONS.map((option) => {
+                  const active = option.value === state.form.style;
+                  return `
+                    <button
+                      type="button"
+                      class="mode-option${active ? " is-active" : ""}"
+                      role="tab"
+                      aria-selected="${active ? "true" : "false"}"
+                      data-style-value="${escapeHtml(option.value)}"
                     >
                       <span>${escapeHtml(option.label)}</span>
                       <small>${escapeHtml(option.hint)}</small>
@@ -1046,6 +1088,9 @@
               <div class="score-big-label">Run mode</div>
               <div class="analysis-side-value">${escapeHtml(getModeMeta(state.form.mode).label)}</div>
               <div class="score-band">${escapeHtml(getModeMeta(state.form.mode).hint)}</div>
+              <div class="score-band" style="margin-top:6px;">${escapeHtml(getStyleMeta(state.form.style).label)}: ${escapeHtml(
+      getStyleMeta(state.form.style).hint
+    )}</div>
             </section>
             <section class="rail-card">
               <h3>v1 Status</h3>
@@ -1444,7 +1489,7 @@
     render();
     const roastPromise = (async function () {
       try {
-        const apiRun = await runApiRoast(validation.url, state.form.mode);
+        const apiRun = await runApiRoast(validation.url, state.form.mode, state.form.style);
         return {
           ui: apiRun.ui,
           partialEvidence: Boolean(apiRun.partialEvidence),
@@ -1554,6 +1599,13 @@
       const modeTarget = event.target.closest("[data-mode-value]");
       if (modeTarget) {
         state.form.mode = modeTarget.getAttribute("data-mode-value") || state.form.mode;
+        if (state.screen === "home") render();
+        return;
+      }
+
+      const styleTarget = event.target.closest("[data-style-value]");
+      if (styleTarget) {
+        state.form.style = styleTarget.getAttribute("data-style-value") || state.form.style;
         if (state.screen === "home") render();
         return;
       }
