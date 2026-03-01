@@ -847,6 +847,7 @@
     const mode = getModeMeta(state.form.mode);
     const sourceBadge = getRunSourceBadge();
     const right = meta && meta.rightHtml ? meta.rightHtml : "";
+    const showUrl = !(meta && meta.hideUrl) && state.form.url;
 
     return `
       <header class="topbar">
@@ -855,7 +856,7 @@
           <div>Roast My Landing Page</div>
         </div>
         <div class="topbar-right">
-          ${state.form.url ? `<div class="url-pill">${escapeHtml(state.form.url)}</div>` : ""}
+          ${showUrl ? `<div class="url-pill">${escapeHtml(state.form.url)}</div>` : ""}
           <div class="mode-pill">${escapeHtml(mode.label)}</div>
           ${
             sourceBadge
@@ -876,6 +877,7 @@
     return `
       <div class="shell">
         ${renderTopbar({
+          hideUrl: true,
           rightHtml: `<button class="ghost-btn" type="button" data-action="use-example">Use sample URL</button>`,
         })}
 
