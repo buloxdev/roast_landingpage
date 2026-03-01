@@ -4,6 +4,29 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
+function loadEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return;
+  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+  for (const line of lines) {
+    if (!line || /^\s*#/.test(line)) continue;
+    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+    if (!match) continue;
+    const key = match[1];
+    if (process.env[key] != null && process.env[key] !== "") continue;
+    let value = match[2] || "";
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
+  }
+}
+
+loadEnvFile(path.join(__dirname, ".env"));
+loadEnvFile(path.join(__dirname, ".env.local"));
+
 const PORT = Number(process.env.PORT || 8787);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_BASE_URL = String(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
@@ -261,6 +284,14 @@ function inferOutcome(heroText, description) {
 
 function hasOpenAiConfigured() {
   return Boolean(OPENAI_API_KEY);
+}
+
+function requireOpenAiConfigured() {
+  if (!hasOpenAiConfigured()) {
+    const error = new Error("OPENAI_API_KEY is not configured.");
+    error.code = "OPENAI_NOT_CONFIGURED";
+    throw error;
+  }
 }
 
 function asJsonString(value) {
@@ -554,6 +585,16 @@ function buildPromptEvidence(extraction, requestedUrl, mode) {
     quoted_snippets_json: asJsonString(quotedSnippets),
     errors_json: asJsonString([]),
   };
+}
+
+function getRoastStyleInstruction(style) {
+  if (style === "deadpan") {
+    return "Use a dry, understated deadpan tone. Be concise, quietly cutting, and slightly amused. Favor lines that sound effortless rather than loud.";
+  }
+  if (style === "unhinged") {
+    return "Use a chaotic, high-energy roast style with more surprise and edge. Let titles and one-liners hit harder, but keep every joke attached to useful feedback.";
+  }
+  return "Use a sharp, witty roast style that feels playful, confident, and professional. Prefer punchy lines over safe generic phrasing.";
 }
 
 function scoreBandFromOverall(score) {
@@ -1105,12 +1146,13 @@ async function buildAiPass1Analysis({ requestedUrl, mode, extraction, fallbackAn
   });
 }
 
-async function buildAiPass2Ui({ requestedUrl, mode, analysis, fallbackUi }) {
+async function buildAiPass2Ui({ requestedUrl, mode, style, analysis, fallbackUi }) {
   const roastModeLabel =
     mode === "fix-first" ? "Fix-First" : mode === "balanced" ? "Balanced" : "Brutal";
   const prompt = renderTemplate(pass2Template, {
     requested_url: requestedUrl,
     roast_mode_label: roastModeLabel,
+    roast_style_instruction: getRoastStyleInstruction(style),
     pass1_analysis_json: asJsonString(analysis),
   });
 
@@ -1126,7 +1168,7 @@ async function buildAiPass2Ui({ requestedUrl, mode, analysis, fallbackUi }) {
         schema: pass2Schema,
       },
     },
-    temperature: 0.5,
+    temperature: 0.8,
   });
 
   const validation = pass2ValidationApi.validatePass2Payload(raw);
@@ -1190,6 +1232,7 @@ async function handleAnalyze(req, res, requestId) {
   }
 
   const mode = typeof body.mode === "string" && body.mode.trim() ? body.mode.trim() : "balanced";
+  const style = typeof body.style === "string" && body.style.trim() ? body.style.trim() : "sharp";
   const roastId = makeId("roast");
   const snapshot = await fetchPageSnapshot(body.url);
   if (!snapshot.ok) {
@@ -1206,31 +1249,27 @@ async function handleAnalyze(req, res, requestId) {
     );
   }
 
-  const extraction = buildExtraction(snapshot.html, snapshot.finalUrl);
-  const fallbackAnalysis = buildRealAnalysis({ url: body.url, mode, extraction });
-  let analysis = fallbackAnalysis;
-
-  if (hasOpenAiConfigured()) {
-    try {
-      analysis = await buildAiPass1Analysis({
-        requestedUrl: body.url,
-        mode,
-        extraction,
-        fallbackAnalysis,
-      });
-    } catch (error) {
-      analysis = clone(fallbackAnalysis);
-      analysis.meta = {
-        ...analysis.meta,
-        provider: "heuristic_fallback",
-        provider_error: truncate(error && error.message ? error.message : "OpenAI Pass 1 failed", 160),
-      };
-    }
-  } else {
-    analysis.meta = {
-      ...analysis.meta,
-      provider: "heuristic",
-    };
+  let analysis;
+  try {
+    requireOpenAiConfigured();
+    const extraction = buildExtraction(snapshot.html, snapshot.finalUrl);
+    const fallbackAnalysis = buildRealAnalysis({ url: body.url, mode, extraction });
+    analysis = await buildAiPass1Analysis({
+      requestedUrl: body.url,
+      mode,
+      extraction,
+      fallbackAnalysis,
+    });
+  } catch (error) {
+    const code = error && error.code === "OPENAI_NOT_CONFIGURED" ? "INTERNAL_ERROR" : "ANALYSIS_FAILED";
+    const message =
+      error && error.code === "OPENAI_NOT_CONFIGURED"
+        ? "AI backend is not configured."
+        : "The page loaded but analysis did not complete.";
+    return sendError(res, 503, requestId, code, message, {
+      details: [{ field: "analysis", reason: truncate(error && error.message ? error.message : "OpenAI Pass 1 failed", 180) }],
+      retryable: true,
+    });
   }
 
   const timestamp = nowIso();
@@ -1239,7 +1278,7 @@ async function handleAnalyze(req, res, requestId) {
     status: "analyzed",
     created_at: timestamp,
     updated_at: timestamp,
-    input: { url: body.url, mode },
+    input: { url: body.url, mode, style },
     analysis,
     ui: null,
   };
@@ -1319,25 +1358,37 @@ async function handleCompose(req, res, requestId) {
     });
   }
 
-  const fallbackUi = buildPass2Ui(sourceAnalysis, body.mode);
-  let ui = fallbackUi;
-
-  if (hasOpenAiConfigured()) {
-    try {
-      ui = await buildAiPass2Ui({
-        requestedUrl:
-          targetRecord && targetRecord.input && targetRecord.input.url
-            ? targetRecord.input.url
-            : sourceAnalysis && sourceAnalysis.meta && sourceAnalysis.meta.source_url
-            ? sourceAnalysis.meta.source_url
-            : "https://example.com",
-        mode: typeof body.mode === "string" ? body.mode : "balanced",
-        analysis: sourceAnalysis,
-        fallbackUi,
-      });
-    } catch (error) {
-      ui = fallbackUi;
-    }
+  let ui;
+  try {
+    requireOpenAiConfigured();
+    const fallbackUi = buildPass2Ui(sourceAnalysis, body.mode);
+    ui = await buildAiPass2Ui({
+      requestedUrl:
+        targetRecord && targetRecord.input && targetRecord.input.url
+          ? targetRecord.input.url
+          : sourceAnalysis && sourceAnalysis.meta && sourceAnalysis.meta.source_url
+          ? sourceAnalysis.meta.source_url
+          : "https://example.com",
+      mode: typeof body.mode === "string" ? body.mode : "balanced",
+      style:
+        typeof body.style === "string" && body.style
+          ? body.style
+          : targetRecord && targetRecord.input && targetRecord.input.style
+          ? targetRecord.input.style
+          : "sharp",
+      analysis: sourceAnalysis,
+      fallbackUi,
+    });
+  } catch (error) {
+    const code = error && error.code === "OPENAI_NOT_CONFIGURED" ? "INTERNAL_ERROR" : "COMPOSE_FAILED";
+    const message =
+      error && error.code === "OPENAI_NOT_CONFIGURED"
+        ? "AI backend is not configured."
+        : "The analysis completed, but composition failed.";
+    return sendError(res, 503, requestId, code, message, {
+      details: [{ field: "compose", reason: truncate(error && error.message ? error.message : "OpenAI Pass 2 failed", 180) }],
+      retryable: true,
+    });
   }
 
   if (targetRecord) {
@@ -1358,6 +1409,7 @@ async function handleCompose(req, res, requestId) {
       input: {
         url: "https://example-saas.com",
         mode: typeof body.mode === "string" ? body.mode : "balanced",
+        style: typeof body.style === "string" ? body.style : "sharp",
       },
       analysis: clone(sourceAnalysis),
       ui: clone(ui),

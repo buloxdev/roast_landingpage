@@ -9,8 +9,16 @@ Task context
 Inputs
 - Requested URL: {{requested_url}}
 - Roast mode/tone label for UI: {{roast_mode_label}}
+- Roast style instruction: {{roast_style_instruction}}
 - Pass 1 analysis JSON:
 {{pass1_analysis_json}}
+
+Style application guidance
+- Keep the analysis intact.
+- Make the presentation feel written, not generated.
+- Put most of the personality into the headline, one-liner, issue titles, and share quote.
+- Keep fixes direct and concrete.
+- If a line can be made sharper, shorter, and more memorable without changing meaning, do that.
 
 Output requirements (exact top-level keys, no extras)
 - header
