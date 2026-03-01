@@ -881,48 +881,48 @@
 
         <div class="home-grid">
           <section class="home-hero-card">
-            <div class="eyebrow">Desktop-first v1 shell</div>
-            <h1 class="home-title">Paste a landing page. Get a ranked roast report with fixes.</h1>
+            <div class="eyebrow">A tough-love review for landing pages</div>
+            <h1 class="home-title">Paste your URL. Get roasted.</h1>
             <p class="home-lede">
-              Static frontend prototype for the v1 flow. This screen feeds a fake analysis state, then renders the
-              locked desktop results layout from the pass2 UI sample JSON.
+              We review your headline, CTA, structure, and messaging, then show you what is hurting conversions and
+              what to fix first.
             </p>
 
             <div class="hero-stat-grid">
               <div class="hero-stat">
-                <div class="hero-stat-label">Flow</div>
-                <div class="hero-stat-value">Home -> Analyzing -> Results</div>
+                <div class="hero-stat-label">What you get</div>
+                <div class="hero-stat-value">Ranked feedback, fixes, and rewrite ideas</div>
               </div>
               <div class="hero-stat">
-                <div class="hero-stat-label">Data source</div>
-                <div class="hero-stat-value">pass2-ui.sample.json</div>
+                <div class="hero-stat-label">Fastest lift</div>
+                <div class="hero-stat-value">Hero copy and CTA issues rise first</div>
               </div>
               <div class="hero-stat">
-                <div class="hero-stat-label">Primary target</div>
-                <div class="hero-stat-value">Desktop polish</div>
+                <div class="hero-stat-label">Best for</div>
+                <div class="hero-stat-value">Founders, marketers, and homepage tuning</div>
               </div>
               <div class="hero-stat">
-                <div class="hero-stat-label">V1 guardrail</div>
-                <div class="hero-stat-value">Every criticism includes a fix</div>
+                <div class="hero-stat-label">Promise</div>
+                <div class="hero-stat-value">Every roast ends with a next move</div>
               </div>
             </div>
 
             <div class="home-preview-strip">
-              <div class="preview-chip">Top 5 Problems</div>
-              <div class="preview-chip">Category Scores</div>
-              <div class="preview-chip">Quick Wins</div>
-              <div class="preview-chip">Rewrite Pack</div>
-              <div class="preview-chip">Mobile Roast</div>
-              <div class="preview-chip">What's Working</div>
+              <div class="preview-chip">Headline clarity</div>
+              <div class="preview-chip">CTA strength</div>
+              <div class="preview-chip">Messaging gaps</div>
+              <div class="preview-chip">Rewrite ideas</div>
+              <div class="preview-chip">Mobile friction</div>
+              <div class="preview-chip">What is already working</div>
             </div>
           </section>
 
           <section class="input-card">
             <div class="input-card-head">
               <div>
-                <div class="eyebrow">Start Roast</div>
-                <h2>Run v1 report</h2>
-                <p>Calls the local stub API when available, with fixture fallback for local dev preview.</p>
+                <div class="eyebrow">Start the roast</div>
+                <h2>Drop in your landing page URL</h2>
+                <p>We will review the promise, the pitch, the CTA, and the trust signals, then show you where the page is leaking conversions.</p>
               </div>
               <div class="mode-pill mode-pill-soft">${escapeHtml(mode.hint)}</div>
             </div>
@@ -971,7 +971,7 @@
             </form>
 
             <div class="fixture-note">
-              <strong>v1 shell behavior:</strong> real API calls (/analyze, /compose) with fixture fallback if the stub API is unavailable.
+              <strong>Just exploring?</strong> Use the sample URL to see the full roast format before testing your own page.
             </div>
           </section>
         </div>
