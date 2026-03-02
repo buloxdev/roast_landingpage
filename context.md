@@ -667,3 +667,254 @@ Run a quick end-to-end manual verification with both processes locally:
 2. Redeploy/restart Render
 3. Verify `/health` returns `openai_configured: true`
 4. Re-test several real landing pages and compare output quality against the heuristic path
+
+## Resume Update (2026-02-28, later): Full API mode required for normal roasts
+
+### Decision
+- Normal roasts should use the real OpenAI pipeline every time.
+- Silent fallback to heuristic analysis/composition was removed for normal URLs.
+
+### Runtime behavior now
+- If `OPENAI_API_KEY` is missing:
+  - `/analyze` and `/compose` fail with an AI-backend-not-configured error path
+- If OpenAI fails during pass1:
+  - `/analyze` fails instead of returning heuristic output
+- If OpenAI fails during pass2:
+  - `/compose` fails instead of returning heuristic output
+
+### What still remains deterministic
+- The hardcoded QA scenario URLs still exist for testing blocked/timeout/rate-limit/compose-fail states.
+
+### Immediate operational requirement
+1. Set `OPENAI_API_KEY` on Render
+2. Redeploy Render
+3. Confirm `/health` shows `openai_configured: true`
+4. Re-test live roasts on real URLs
+
+## Resume Update (2026-02-28 23:13 CST): Live app status, local-dev stabilization, and next focus
+
+### Current live architecture
+- Frontend is live on Vercel:
+  - `https://roastlandingpage.vercel.app`
+- Backend is live on Render:
+  - `https://roast-landingpage-api.onrender.com`
+- Vercel rewrites `/api/*` to the Render backend.
+- Render `/health` confirms `openai_configured: true`, which means the environment variable is present.
+
+### Important backend diagnosis
+- The current OpenAI failure is **not** a bad server deploy.
+- It is **not** a bad proxy path.
+- It is **not** a missing env var.
+- Render logs now show the real upstream problem:
+  - OpenAI returns `429`
+  - `openai.code = insufficient_quota`
+- Meaning:
+  - the key is being read
+  - the API account/org behind the key does not currently have usable API quota/billing
+- Required fix outside the codebase:
+  1. update API billing/quota in the OpenAI Platform account
+  2. re-test a roast after quota is restored
+
+### Current OpenAI model configuration guidance
+- Cheapest safe default for now:
+  - `OPENAI_PASS1_MODEL=gpt-4o-mini`
+  - `OPENAI_PASS2_MODEL=gpt-4o-mini`
+- Lower-cost experiment to try later:
+  - `OPENAI_PASS1_MODEL=gpt-4.1-nano`
+  - `OPENAI_PASS2_MODEL=gpt-4o-mini`
+- Reason:
+  - pass2 is user-facing and schema-constrained, so quality matters more there
+
+### Local dev stability changes completed
+- Repeated local breakage was caused by:
+  - stale browser cache
+  - port collision with another local project
+  - frontend pointing to outdated localhost API ports
+  - local backend/OpenAI assumptions leaking into normal UI testing
+- Current local workflow is intentionally simpler:
+  - `npm run dev`
+  - open `http://127.0.0.1:8091`
+- Current expected behavior:
+  - local UI serves from repo-owned dev server
+  - browser calls `/api`
+  - dev server proxies `/api/*` to the live Render backend by default
+- Explicit local backend mode now exists separately:
+  - `npm run dev:local-api`
+  - only use this when intentionally testing backend code locally
+
+### Frontend/API bug fixed today
+- `app.js` previously treated backend `503` responses as if the API were unreachable.
+- That incorrectly triggered fixture fallback and showed misleading “Stub API unavailable” copy.
+- Fixed behavior:
+  - true network/proxy failures can still fall back if needed
+  - backend `503` responses now surface as real error states instead of fake fixture fallback
+- Also removed outdated `stub API` wording from the UI where it was misleading.
+
+### UI work completed today
+- Home screen language was moved away from internal/prototype phrasing.
+- The home screen URL pill was removed.
+- A more vibrant visual direction was started in `styles.css`.
+- Roast style selector was added to the home screen:
+  - `Sharp`
+  - `Deadpan`
+  - `Unhinged`
+- Roast style only affects pass2 phrasing, not factual analysis.
+
+### Prompt/style work completed today
+- `prompts/pass2-system.txt` and `prompts/pass2-compose-template.txt` were strengthened so the roast voice can be more vivid where it matters:
+  - headline
+  - one-liner
+  - issue titles
+  - share quote
+- `server.js` style guidance for pass2 was tightened.
+- Pass2 temperature was raised from `0.5` to `0.8` to allow more tonal variation.
+- These changes require Render to be healthy against OpenAI quota before they can be properly evaluated.
+
+### Current known product state
+- The app architecture is real and working:
+  - public frontend
+  - public backend
+  - real page fetch/extraction path
+  - Render/Vercel wiring
+- The immediate blocker to “real AI every roast” is OpenAI API quota.
+- Until quota is fixed, any normal roast that depends on OpenAI will fail upstream.
+
+### Recommended next steps for tomorrow
+1. Fix OpenAI API billing/quota in the platform account and confirm real roasts succeed again
+2. Re-test roast styles (`Sharp`, `Deadpan`, `Unhinged`) on the same page and evaluate tone differences
+3. Continue UI cleanup:
+   - make the visual system sleeker and more vibrant
+   - tighten wording further so it feels playful but not sloppy
+   - remove any remaining internal/prototype-sounding language
+4. Create promotional visuals:
+   - polished app screenshots
+   - shareable mockups for Instagram/social posts
+   - likely a few curated “before/after roast” examples
+5. Discuss monetization options:
+   - free roasts with limits
+   - paid credits / usage packs
+   - subscription tiers
+   - agency/team plans
+   - paid share pages or downloadable teardown reports
+
+### Practical resume point
+- If resuming locally tomorrow:
+  1. run `npm run dev`
+  2. open `http://127.0.0.1:8091`
+  3. confirm the app is talking to `/api`
+  4. only debug OpenAI-backed roast quality after API quota is restored
+
+## Resume Update (2026-03-01 21:05 CST): UI direction tightened, rewrite compare added, and production fallback UX cleaned up
+
+### What was completed today
+
+#### 1. Home screen tone moved toward the intended product personality
+- The hero language was pushed away from generic SaaS/corporate copy and toward a more playful, design-crit tone.
+- Current home hero headline:
+  - `Paste the page. Watch it cook.`
+- Current supporting direction:
+  - playful but still useful
+  - meant to feel like a smart critique tool, not a dashboard for growth teams
+
+#### 2. Home screen wording cleanup
+- User-facing `CTA` jargon was partially removed from the visible home screen copy.
+- On the home screen, `CTA` was replaced with clearer language like:
+  - `next step`
+  - `Next-step strength`
+- Internal/backend/schema names were intentionally left alone to avoid unnecessary churn.
+
+#### 3. Visual system was pushed further
+- `styles.css` was updated to make the app feel:
+  - sharper
+  - hotter
+  - more design-forward
+  - less polite / less corporate
+- Changes included:
+  - stronger hero gradients
+  - richer orange/teal accents
+  - more editorial hero scale
+  - upgraded input card styling
+  - stronger mode/style selection states
+
+#### 4. Production trust fix: fallback banner hidden from real users
+- The `API unavailable - showing local fixture` warning/banner was identified as a trust killer.
+- `app.js` was updated so debug fallback UI is now shown only in local/dev contexts:
+  - `localhost`
+  - `127.0.0.1`
+  - file-preview / empty hostname
+- In production, fallback/debug wording is hidden.
+- This was deployed to Vercel.
+
+#### 5. Rewrite Pack got a more product-like compare view
+- A visual `Current / Rewrite` compare stack was added above the Rewrite Pack.
+- It currently shows compare cards for:
+  - Headline
+  - Support line
+  - Next step
+- Each compare card includes:
+  - current text on the left
+  - rewritten version on the right
+  - `Copy upgrade` button
+- The styling was tightened after first implementation to feel more intentional and less like generic dashboard cards.
+
+### Important clarification from today
+- The new rewrite compare UI did **not** break analysis.
+- The apparent “Analysis failed” regression was caused by the existing OpenAI upstream quota issue being surfaced honestly instead of being silently masked by fallback behavior.
+- In other words:
+  - the backend was already failing on quota
+  - the frontend is just less misleading now
+
+### Current known blocker
+- OpenAI normal-roast path is still blocked by:
+  - `429`
+  - `insufficient_quota`
+- This is confirmed by Render logs.
+- Until API quota/billing is restored, real AI-backed normal roasts will continue to fail upstream.
+
+### Product/UX decision clarified today
+- The app currently sits between two modes:
+  1. strict real-AI mode
+     - backend failures surface as errors
+     - honest, but brittle while quota is unresolved
+  2. seamless fallback mode
+     - backend failures degrade to heuristic/sample output without telling production users
+     - better UX during billing/setup issues
+- This decision is still open for tomorrow.
+- Pragmatic recommendation if quota is not fixed immediately:
+  - restore graceful fallback for quota/API failures
+  - keep fallback/debug language hidden in production
+  - keep strict/debug visibility locally only
+
+### Current status of the rewrite compare feature
+- UI/layout direction is good.
+- Data feeding it is still approximate in some places.
+- Current limitation:
+  - `Current` values do not always reflect exact original page copy
+  - some “before” values are still derived from existing summary/evidence fields rather than a dedicated extracted original field
+- Recommended next improvement:
+  - capture true original:
+    - headline
+    - support line
+    - primary action text
+  - feed those exact values into the compare cards
+
+### Updated next-step priority order
+1. Decide whether to restore seamless fallback while OpenAI quota is unresolved
+2. Fix OpenAI API billing/quota in the platform account
+3. Improve rewrite compare data quality (true original copy on the left)
+4. Add local roast history (last 3 roasts, no login)
+5. Add share flow:
+   - `Copy link`
+   - `Email draft`
+   - possibly a better-labeled team-share action
+6. Continue polishing the UI
+7. Create promo screenshots / social assets
+8. Talk through monetization
+
+### Practical resume point for tomorrow
+- Start in local dev:
+  1. `npm run dev`
+  2. open `http://127.0.0.1:8091`
+- Then decide first:
+  - fix quota/billing now, or
+  - temporarily re-enable graceful fallback for production UX
