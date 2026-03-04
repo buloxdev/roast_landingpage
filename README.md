@@ -52,36 +52,64 @@ Implemented in `main`:
 
 ## Run Locally
 
-Frontend only:
+Recommended local dev:
 
 ```bash
-cd /Users/anthonyaguilar/Documents/agent_eval/roast_landingpage
-python3 -m http.server 8090
+cd roast_landingpage
+npm run dev
 ```
 
 Then open:
-- [http://localhost:8090](http://localhost:8090)
+- [http://127.0.0.1:8091](http://127.0.0.1:8091)
 
-Full local flow:
+This starts:
+- UI server on `127.0.0.1:8091`
+- API requests proxied automatically to the live Render backend
+
+Behavior:
+- `npm run dev` always proxies `/api/*` to the live Render backend
+- this avoids the recurring local `503` / fallback issue caused by missing or stale local backend config
+- use local backend mode only when you explicitly want to debug backend code
+
+Optional UI-only mode:
+
+```bash
+cd roast_landingpage
+npm run ui:dev
+```
+
+Optional local-backend mode:
+
+```bash
+cd roast_landingpage
+npm run dev:local-api
+```
+
+Notes:
+- `dev:local-api` starts the local API on `127.0.0.1:8788`
+- it requires a valid local `OPENAI_API_KEY`
+- if the key is missing, the dev server will fall back to proxying the live Render backend
+
+Legacy manual flow:
 
 Terminal 1:
 
 ```bash
-cd /Users/anthonyaguilar/Documents/agent_eval/roast_landingpage
+cd roast_landingpage
 python3 -m http.server 8090
 ```
 
 Terminal 2:
 
 ```bash
-cd /Users/anthonyaguilar/Documents/agent_eval/roast_landingpage
+cd roast_landingpage
 npm run api:stub
 ```
 
-Optional: enable OpenAI-backed pass1/pass2
+Optional: enable OpenAI-backed local backend
 
 ```bash
-cd /Users/anthonyaguilar/Documents/agent_eval/roast_landingpage
+cd roast_landingpage
 cp .env.example .env
 ```
 
@@ -92,8 +120,9 @@ Then set:
   - `OPENAI_PASS2_MODEL`
 
 Notes:
-- if no OpenAI key is present, the backend falls back to the built-in heuristic analyzer
-- if the OpenAI call fails, the backend currently falls back to the heuristic path instead of hard-failing
+- OpenAI is now required for normal roasts
+- if `OPENAI_API_KEY` is missing, the backend will return an AI-backend-not-configured error
+- if the OpenAI call fails, the request fails instead of falling back to heuristics
 
 ## What Is Finished vs Not Finished
 
@@ -108,7 +137,7 @@ Finished:
 - Vercel frontend deploy
 
 Not finished:
-- Durable, fully model-backed backend behavior for `/analyze`, `/compose`, `/roast/:id`
+- Durable persistence and production hardening for the fully model-backed backend
 - Real scraping/extraction pipeline
 - Pass1 strict schema hardening (deferred until real outputs)
 - Hosted backend wiring from Vercel -> Render

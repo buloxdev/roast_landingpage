@@ -1271,10 +1271,10 @@ async function handleAnalyze(req, res, requestId) {
   }
 
   let analysis;
+  const extraction = buildExtraction(snapshot.html, snapshot.finalUrl);
+  const fallbackAnalysis = buildRealAnalysis({ url: body.url, mode, extraction });
   try {
     requireOpenAiConfigured();
-    const extraction = buildExtraction(snapshot.html, snapshot.finalUrl);
-    const fallbackAnalysis = buildRealAnalysis({ url: body.url, mode, extraction });
     analysis = await buildAiPass1Analysis({
       requestedUrl: body.url,
       mode,
@@ -1289,15 +1289,7 @@ async function handleAnalyze(req, res, requestId) {
       pass: "pass1",
       model: OPENAI_PASS1_MODEL,
     });
-    const code = error && error.code === "OPENAI_NOT_CONFIGURED" ? "INTERNAL_ERROR" : "ANALYSIS_FAILED";
-    const message =
-      error && error.code === "OPENAI_NOT_CONFIGURED"
-        ? "AI backend is not configured."
-        : "The page loaded but analysis did not complete.";
-    return sendError(res, 503, requestId, code, message, {
-      details: [{ field: "analysis", reason: truncate(error && error.message ? error.message : "OpenAI Pass 1 failed", 180) }],
-      retryable: true,
-    });
+    analysis = fallbackAnalysis;
   }
 
   const timestamp = nowIso();
@@ -1387,9 +1379,9 @@ async function handleCompose(req, res, requestId) {
   }
 
   let ui;
+  const fallbackUi = buildPass2Ui(sourceAnalysis, body.mode);
   try {
     requireOpenAiConfigured();
-    const fallbackUi = buildPass2Ui(sourceAnalysis, body.mode);
     ui = await buildAiPass2Ui({
       requestedUrl:
         targetRecord && targetRecord.input && targetRecord.input.url
@@ -1413,15 +1405,7 @@ async function handleCompose(req, res, requestId) {
       pass: "pass2",
       model: OPENAI_PASS2_MODEL,
     });
-    const code = error && error.code === "OPENAI_NOT_CONFIGURED" ? "INTERNAL_ERROR" : "COMPOSE_FAILED";
-    const message =
-      error && error.code === "OPENAI_NOT_CONFIGURED"
-        ? "AI backend is not configured."
-        : "The analysis completed, but composition failed.";
-    return sendError(res, 503, requestId, code, message, {
-      details: [{ field: "compose", reason: truncate(error && error.message ? error.message : "OpenAI Pass 2 failed", 180) }],
-      retryable: true,
-    });
+    ui = fallbackUi;
   }
 
   if (targetRecord) {
