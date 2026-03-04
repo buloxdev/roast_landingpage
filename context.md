@@ -918,3 +918,100 @@ Run a quick end-to-end manual verification with both processes locally:
 - Then decide first:
   - fix quota/billing now, or
   - temporarily re-enable graceful fallback for production UX
+
+## Resume Update (2026-03-03 20:24 CST): Graceful fallback restored, roast history added, share flow improved
+
+### What was completed today
+
+#### 1. Graceful fallback was restored
+- Decision made:
+  - while OpenAI quota is unresolved, the product should stay usable instead of hard-failing normal roasts
+- `server.js` was updated so:
+  - pass1 tries OpenAI first
+  - if pass1 fails, it falls back to heuristic analysis
+  - pass2 tries OpenAI first
+  - if pass2 fails, it falls back to the local pass2 composition path
+- This means:
+  - the app should remain usable even when OpenAI returns quota/billing errors
+  - once quota is restored, the same code automatically prefers the configured OpenAI models again
+
+#### 2. Model usage is now easy to verify in code
+- Current model defaults in `server.js`:
+  - `OPENAI_PASS1_MODEL = gpt-4o-mini`
+  - `OPENAI_PASS2_MODEL = gpt-4o-mini`
+- The exact OpenAI call sites remain:
+  - pass1 call uses `OPENAI_PASS1_MODEL`
+  - pass2 call uses `OPENAI_PASS2_MODEL`
+- This was explicitly checked so there is a clear audit trail for what model will be used when quota is available.
+
+#### 3. Personal local filesystem paths were removed from README
+- `README.md` previously had absolute local commands containing `/Users/anthonyaguilar/...`
+- Those paths were replaced with generic repo-root commands before pushing
+- Repo content was re-checked to confirm no remaining instances of:
+  - `/Users/anthonyaguilar`
+  - `anthonyaguilar`
+
+#### 4. Local roast history was added
+- `app.js` and `styles.css` were updated so the app now stores the last 3 successful roasts in browser localStorage
+- History appears on the home screen under the input card
+- Each saved roast includes:
+  - title
+  - URL
+  - score
+  - verdict
+  - saved date
+- Clicking a history item reopens the saved result
+- No backend/auth work required
+
+#### 5. Results sidebar actions were upgraded
+- The old sidebar action block was weak and overly mechanical:
+  - `Copy share quote`
+  - `Copy score text`
+  - `Copy permalink`
+- It was replaced with a more productized share/action set:
+  - `Copy roast link`
+  - `Copy summary`
+  - `Email draft`
+  - `Roast another page`
+- `Copy summary` now bundles:
+  - roast title
+  - score text
+  - quote
+  - permalink
+- `Email draft` uses a `mailto:` flow rather than requiring a new backend email system
+
+### Current product state after today
+- The app is in a better UX position:
+  - production users do not see debug fallback banners
+  - the app should degrade more gracefully while OpenAI quota is unresolved
+  - roast history and sharing are both more usable
+- The product is still limited by OpenAI API quota for “true AI every roast,” but is no longer forced into a brittle all-or-nothing experience.
+
+### New design concern raised today
+- Once the user reaches the roast/results page, there is likely too much going on.
+- Open question for the next UI pass:
+  - can the results page be simplified and made more impactful?
+- This is likely the right next UX problem to solve after the recent feature additions.
+
+### Likely simplification directions to explore next
+1. reduce visible density above the fold
+2. collapse or deprioritize lower-value sections
+3. make the top 1-3 problems feel dominant and immediate
+4. make the rewrite section more central and clearly actionable
+5. reduce “dashboard chrome” and make the page feel more like a focused critique document
+
+### Updated next-step priority order
+1. Verify the restored graceful fallback works after Render redeploy
+2. Fix OpenAI API billing/quota in the platform account
+3. Simplify the results/roast page so it feels more impactful and less busy
+4. Improve rewrite compare data quality (true original page copy on the left)
+5. Continue polish for screenshot/social-worthiness
+6. Create promo screenshots / social assets
+7. Talk through monetization
+
+### Practical resume point for tomorrow
+1. run `npm run dev`
+2. open `http://127.0.0.1:8091`
+3. confirm fallback behavior is usable again
+4. review the results page specifically with the question:
+   - what can be removed, collapsed, or visually subordinated to make the roast feel sharper?
