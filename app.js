@@ -385,12 +385,14 @@
     progress: 0,
     completedSteps: 0,
     resultData: null,
+    roastHistory: [],
     runId: 0,
     analyzing: false,
   };
 
   const fixtureCache = Object.create(null);
   const fixturePromises = Object.create(null);
+  const HISTORY_STORAGE_KEY = "roast-history-v1";
 
   function escapeHtml(value) {
     return String(value)
@@ -411,6 +413,68 @@
 
   function sleep(ms) {
     return new Promise((resolve) => window.setTimeout(resolve, ms));
+  }
+
+  function loadRoastHistory() {
+    try {
+      const raw = window.localStorage.getItem(HISTORY_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((entry) => entry && typeof entry === "object").slice(0, 3);
+    } catch (_error) {
+      return [];
+    }
+  }
+
+  function saveRoastHistory(items) {
+    try {
+      window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(items.slice(0, 3)));
+    } catch (_error) {
+      return;
+    }
+  }
+
+  function formatHistoryTime(iso) {
+    if (!iso) return "Recent";
+    try {
+      const date = new Date(iso);
+      return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    } catch (_error) {
+      return "Recent";
+    }
+  }
+
+  function buildHistoryEntry() {
+    const data = state.resultData;
+    if (!data || !data.header) return null;
+    return {
+      url: state.form.url,
+      title: data.header.title || "Untitled roast",
+      score: Number(data.header.score_value) || 0,
+      verdict: data.header.verdict_chip || "",
+      mode: state.form.mode,
+      style: state.form.style,
+      savedAt: new Date().toISOString(),
+      resultData: data,
+      resultMeta: {
+        partialEvidence: state.resultMeta.partialEvidence,
+        scenario: state.resultMeta.scenario,
+        source: state.resultMeta.source,
+        apiFallback: state.resultMeta.apiFallback,
+        fallbackReason: state.resultMeta.fallbackReason,
+        roastId: state.resultMeta.roastId,
+      },
+    };
+  }
+
+  function persistCurrentRoastToHistory() {
+    const entry = buildHistoryEntry();
+    if (!entry) return;
+    const deduped = state.roastHistory.filter((item) => !(item && item.url === entry.url));
+    const nextHistory = [entry].concat(deduped).slice(0, 3);
+    state.roastHistory = nextHistory;
+    saveRoastHistory(nextHistory);
   }
 
   function getModeMeta(modeValue) {
@@ -524,7 +588,7 @@
       retryable: Boolean(apiError && apiError.retryable),
       details: Array.isArray(apiError && apiError.details) ? apiError.details : [],
       payload,
-      unavailable: response.status >= 500,
+      unavailable: false,
     };
   }
 
@@ -581,15 +645,25 @@
     return terms.some((term) => haystack.includes(String(term).toLowerCase()));
   }
 
+  function shouldShowDevFallbackUi() {
+    if (window.ROAST_DEBUG_BANNERS === true) return true;
+    const hostname = window.location && window.location.hostname ? window.location.hostname : "";
+    return (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === ""
+    );
+  }
+
   function getRunSourceBadge() {
     if (state.screen === "home") return null;
     if (state.screen === "analyzing") {
       return {
         label: "API",
-        title: `Using stub API at ${API_BASE_URL}`,
+        title: `Using API at ${API_BASE_URL}`,
       };
     }
-    if (state.resultMeta && state.resultMeta.apiFallback) {
+    if (shouldShowDevFallbackUi() && state.resultMeta && state.resultMeta.apiFallback) {
       return {
         label: "Fixture fallback",
         title:
@@ -620,6 +694,18 @@
     if (code === "ANALYSIS_FAILED") return getErrorStateFromTemplate(ERROR_COPY.analysisFailed);
     if (code === "COMPOSE_FAILED") return getErrorStateFromTemplate(ERROR_COPY.composeFailed);
     if (code === "INVALID_PASS2_PAYLOAD") return getErrorStateFromTemplate(ERROR_COPY.composeInvalid);
+    if (code === "INTERNAL_ERROR" || code === "API_ERROR") {
+      return {
+        kind: "analysis",
+        title: "The roast engine is unavailable",
+        message: "The AI backend did not complete the roast. Try again in a moment.",
+        helper: "",
+        primaryLabel: "Retry roast",
+        secondaryLabel: "Try another URL",
+        primaryAction: "",
+        secondaryAction: "",
+      };
+    }
     if (code === "INVALID_REQUEST") {
       const urlReason = getApiErrorDetailReason(error, "url");
       if (/valid http/i.test(urlReason)) return getErrorStateFromTemplate(ERROR_COPY.analysisFailed);
@@ -755,13 +841,13 @@
       });
     }
 
-    if (state.resultMeta && state.resultMeta.apiFallback) {
+    if (shouldShowDevFallbackUi() && state.resultMeta && state.resultMeta.apiFallback) {
       warnings.push({
         kind: "fallback",
-        title: "Stub API unavailable - showing local fixture",
+        title: "API unavailable - showing local fixture",
         message:
           state.resultMeta.fallbackReason ||
-          "Could not reach the local stub API, so the UI loaded a local fixture result instead.",
+          "Could not reach the API, so the UI loaded a local fixture result instead.",
         helper: `Expected API base: ${API_BASE_URL}`,
       });
     }
@@ -860,6 +946,44 @@
       .join("");
   }
 
+  function renderProblemHeadlineList(items) {
+    return (items || [])
+      .slice(0, 3)
+      .map(
+        (item, index) => `
+          <li>
+            <span>${index + 1}</span>
+            <p>${escapeHtml(item)}</p>
+          </li>
+        `
+      )
+      .join("");
+  }
+
+  function renderRewriteCompareCard(label, beforeText, afterText) {
+    if (!afterText) return "";
+    const beforeValue = beforeText || "Needs work";
+    return `
+      <article class="rewrite-compare-card">
+        <div class="rewrite-compare-head">
+          <div class="rewrite-compare-kicker">Rewrite preview</div>
+          <button class="copy-btn copy-btn-quiet" data-copy="${escapeHtml(afterText)}">Copy upgrade</button>
+        </div>
+        <h3>${escapeHtml(label)}</h3>
+        <div class="rewrite-compare-grid">
+          <div class="rewrite-side rewrite-side-before">
+            <span class="rewrite-side-label">Current</span>
+            <p>${escapeHtml(beforeValue)}</p>
+          </div>
+          <div class="rewrite-side rewrite-side-after">
+            <span class="rewrite-side-label">Rewrite</span>
+            <p>${escapeHtml(afterText)}</p>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
   function renderTopbar(meta) {
     const mode = getModeMeta(state.form.mode);
     const style = getStyleMeta(state.form.style);
@@ -894,6 +1018,37 @@
     const mode = getModeMeta(state.form.mode);
     const style = getStyleMeta(state.form.style);
     const hasUrlError = Boolean(state.formError);
+    const historyMarkup = state.roastHistory.length
+      ? `
+        <section class="history-card">
+          <div class="history-head">
+            <div>
+              <div class="eyebrow">Recent roasts</div>
+              <h3>Pick up where you left off</h3>
+            </div>
+          </div>
+          <div class="history-list">
+            ${state.roastHistory
+              .map(
+                (entry, index) => `
+                  <button type="button" class="history-item" data-history-index="${index}">
+                    <div class="history-item-top">
+                      <strong>${escapeHtml(entry.title || "Recent roast")}</strong>
+                      <span>${escapeHtml(formatHistoryTime(entry.savedAt))}</span>
+                    </div>
+                    <div class="history-item-url">${escapeHtml(entry.url || "")}</div>
+                    <div class="history-item-meta">
+                      <span>${escapeHtml(`Score ${entry.score || 0}`)}</span>
+                      <span>${escapeHtml(entry.verdict || "Saved result")}</span>
+                    </div>
+                  </button>
+                `
+              )
+              .join("")}
+          </div>
+        </section>
+      `
+      : "";
     return `
       <div class="shell">
         ${renderTopbar({
@@ -903,35 +1058,34 @@
 
         <div class="home-grid">
           <section class="home-hero-card">
-            <div class="eyebrow">A tough-love review for landing pages</div>
-            <h1 class="home-title">Paste your URL. Get roasted.</h1>
+            <div class="eyebrow">For designers, founders, and homepage obsessives</div>
+            <h1 class="home-title">Paste the page. Watch it cook.</h1>
             <p class="home-lede">
-              We review your headline, CTA, structure, and messaging, then show you what is hurting conversions and
-              what to fix first.
+              A playful roast with real signal behind it. We pull apart the headline, next step, message, and trust story fast enough to use mid-iteration.
             </p>
 
             <div class="hero-stat-grid">
               <div class="hero-stat">
-                <div class="hero-stat-label">What you get</div>
-                <div class="hero-stat-value">Ranked feedback, fixes, and rewrite ideas</div>
+                <div class="hero-stat-label">It finds</div>
+                <div class="hero-stat-value">The vague promise, weak next step, and muddy messaging first</div>
               </div>
               <div class="hero-stat">
-                <div class="hero-stat-label">Fastest lift</div>
-                <div class="hero-stat-value">Hero copy and CTA issues rise first</div>
+                <div class="hero-stat-label">It gives</div>
+                <div class="hero-stat-value">Rewrites, quick wins, and a ranked list of what to fix next</div>
               </div>
               <div class="hero-stat">
-                <div class="hero-stat-label">Best for</div>
-                <div class="hero-stat-value">Founders, marketers, and homepage tuning</div>
+                <div class="hero-stat-label">Good for</div>
+                <div class="hero-stat-value">Launch pages, portfolio sites, SaaS homepages, and redesigns</div>
               </div>
               <div class="hero-stat">
-                <div class="hero-stat-label">Promise</div>
-                <div class="hero-stat-value">Every roast ends with a next move</div>
+                <div class="hero-stat-label">The vibe</div>
+                <div class="hero-stat-value">More design crit than corporate audit, with a little heat</div>
               </div>
             </div>
 
             <div class="home-preview-strip">
               <div class="preview-chip">Headline clarity</div>
-              <div class="preview-chip">CTA strength</div>
+              <div class="preview-chip">Next-step strength</div>
               <div class="preview-chip">Messaging gaps</div>
               <div class="preview-chip">Rewrite ideas</div>
               <div class="preview-chip">Mobile friction</div>
@@ -942,9 +1096,9 @@
           <section class="input-card">
             <div class="input-card-head">
               <div>
-                <div class="eyebrow">Start the roast</div>
-                <h2>Drop in your landing page URL</h2>
-                <p>We will review the promise, the pitch, the CTA, and the trust signals, then show you where the page is leaking conversions.</p>
+                <div class="eyebrow">Start here</div>
+                <h2>Drop in the URL</h2>
+                <p>Pick the tone. Pick the style. Get the teardown.</p>
               </div>
               <div class="input-card-badges">
                 <div class="mode-pill mode-pill-soft">${escapeHtml(mode.hint)}</div>
@@ -1015,8 +1169,10 @@
             </form>
 
             <div class="fixture-note">
-              <strong>Just exploring?</strong> Use the sample URL to see the full roast format before testing your own page.
+              <strong>Just exploring?</strong> Load the sample and see the full roast format before running your own page.
             </div>
+
+            ${historyMarkup}
           </section>
         </div>
       </div>
@@ -1091,14 +1247,6 @@
               <div class="score-band" style="margin-top:6px;">${escapeHtml(getStyleMeta(state.form.style).label)}: ${escapeHtml(
       getStyleMeta(state.form.style).hint
     )}</div>
-            </section>
-            <section class="rail-card">
-              <h3>v1 Status</h3>
-              <ul class="rail-list">
-                <li>Shell flow preserved</li>
-                <li>Stub API + fixture fallback</li>
-                <li>Locked desktop section order preserved</li>
-              </ul>
             </section>
           </aside>
         </section>
@@ -1205,14 +1353,6 @@
           </div>
           <div class="summary-meta">
             <div>
-              <div class="mini-tabs">
-                ${data.tabs
-                  .map(
-                    (tab) =>
-                      `<a class="mini-tab" href="#${escapeHtml(tab.id)}">${escapeHtml(tab.label)}</a>`
-                  )
-                  .join("")}
-              </div>
               <p>${escapeHtml(data.summary_panel.one_liner)}</p>
             </div>
             <div class="verdict-chip">${escapeHtml(data.header.verdict_chip)}</div>
@@ -1246,33 +1386,52 @@
 
         <div class="layout">
           <main class="stack">
-            <section class="section" id="${sections.topProblems}">
+            <section class="section section-priority" id="${sections.topProblems}">
               <h2>${escapeHtml(data.summary_panel.top_problems_title)}</h2>
               <p class="section-subtitle">${escapeHtml(data.summary_panel.cta_hint)}</p>
-              <div class="issue-list">
-                ${data.issue_cards.map(renderIssueCard).join("")}
-              </div>
-            </section>
-
-            <section class="section" id="${sections.scores}">
-              <h2>${escapeHtml(data.score_section.title)}</h2>
-              <div class="score-table">
-                ${renderScoreRows(data.score_section.items)}
-              </div>
-            </section>
-
-            <section class="section" id="${sections.quickWins}">
-              <h2>${escapeHtml(data.quick_wins_section.title)}</h2>
-              <p class="section-subtitle">${escapeHtml(data.quick_wins_section.subtitle)}</p>
-              <ol class="simple-list">
-                ${data.quick_wins_section.items
-                  .map((item) => `<li>${escapeHtml(item)}</li>`)
-                  .join("")}
+              <ol class="problem-headline-list">
+                ${renderProblemHeadlineList(data.summary_panel.top_3_problems)}
               </ol>
+              <div class="issue-list">
+                ${data.issue_cards.slice(0, 3).map(renderIssueCard).join("")}
+              </div>
+              ${
+                data.issue_cards.length > 3
+                  ? `
+                <details class="detail-panel issue-overflow-panel">
+                  <summary>Additional findings (${data.issue_cards.length - 3})</summary>
+                  <div class="detail-panel-body">
+                    <div class="issue-list">
+                      ${data.issue_cards.slice(3).map(renderIssueCard).join("")}
+                    </div>
+                  </div>
+                </details>
+              `
+                  : ""
+              }
             </section>
 
-            <section class="section" id="${sections.rewrites}">
+            <section class="section section-priority" id="${sections.rewrites}">
               <h2>${escapeHtml(data.rewrite_pack_section.title)}</h2>
+              <div class="rewrite-compare-stack">
+                ${renderRewriteCompareCard(
+                  "Headline",
+                  data.issue_cards[0] && data.issue_cards[0].evidence && data.issue_cards[0].evidence[0]
+                    ? data.issue_cards[0].evidence[0].value
+                    : "",
+                  data.rewrite_pack_section.headlines[0]
+                )}
+                ${renderRewriteCompareCard(
+                  "Support line",
+                  data.header.subtitle || data.summary_panel.one_liner || "",
+                  data.rewrite_pack_section.subheadlines[0]
+                )}
+                ${renderRewriteCompareCard(
+                  "Next step",
+                  data.summary_panel.cta_hint || "",
+                  data.rewrite_pack_section.ctas[0]
+                )}
+              </div>
               <div class="rewrite-grid">
                 <div class="rewrite-group">
                   <h3>${escapeHtml(data.rewrite_pack_section.headline_options_label)}</h3>
@@ -1289,25 +1448,54 @@
               </div>
             </section>
 
-            <section class="section" id="${sections.mobile}">
-              <h2>${escapeHtml(data.mobile_section.title)}</h2>
-              <p class="section-subtitle">${escapeHtml(
-                data.mobile_section.score_label
-              )}: ${escapeHtml(String(data.mobile_section.score))}/10</p>
-              <ul class="simple-list">
-                ${data.mobile_section.findings
-                  .map((finding) => `<li>${escapeHtml(finding)}</li>`)
-                  .join("")}
-              </ul>
-            </section>
+            <section class="section section-collapsible">
+              <h2 class="section-compact-title">More detail</h2>
+              <details class="detail-panel" id="${sections.quickWins}" open>
+                <summary>${escapeHtml(data.quick_wins_section.title)} (${escapeHtml(
+                  data.quick_wins_section.subtitle
+                )})</summary>
+                <div class="detail-panel-body">
+                  <ol class="simple-list">
+                    ${data.quick_wins_section.items
+                      .map((item) => `<li>${escapeHtml(item)}</li>`)
+                      .join("")}
+                  </ol>
+                </div>
+              </details>
 
-            <section class="section" id="${sections.positives}">
-              <h2>${escapeHtml(data.positives_section.title)}</h2>
-              <ul class="simple-list">
-                ${data.positives_section.items
-                  .map((item) => `<li>${escapeHtml(item)}</li>`)
-                  .join("")}
-              </ul>
+              <details class="detail-panel" id="${sections.scores}">
+                <summary>${escapeHtml(data.score_section.title)}</summary>
+                <div class="detail-panel-body">
+                  <div class="score-table">
+                    ${renderScoreRows(data.score_section.items)}
+                  </div>
+                </div>
+              </details>
+
+              <details class="detail-panel" id="${sections.mobile}">
+                <summary>${escapeHtml(data.mobile_section.title)}</summary>
+                <div class="detail-panel-body">
+                  <p class="section-subtitle">${escapeHtml(
+                    data.mobile_section.score_label
+                  )}: ${escapeHtml(String(data.mobile_section.score))}/10</p>
+                  <ul class="simple-list">
+                    ${data.mobile_section.findings
+                      .map((finding) => `<li>${escapeHtml(finding)}</li>`)
+                      .join("")}
+                  </ul>
+                </div>
+              </details>
+
+              <details class="detail-panel" id="${sections.positives}">
+                <summary>${escapeHtml(data.positives_section.title)}</summary>
+                <div class="detail-panel-body">
+                  <ul class="simple-list">
+                    ${data.positives_section.items
+                      .map((item) => `<li>${escapeHtml(item)}</li>`)
+                      .join("")}
+                  </ul>
+                </div>
+              </details>
             </section>
 
             <section class="section">
@@ -1328,53 +1516,17 @@
             </section>
 
             <section class="rail-card">
-              <h3>${escapeHtml(data.summary_panel.top_problems_title)}</h3>
-              <ol class="rail-list">
-                ${data.summary_panel.top_3_problems
-                  .map((problem) => `<li>${escapeHtml(problem)}</li>`)
-                  .join("")}
-              </ol>
-            </section>
-
-            <section class="rail-card">
-              <h3>Quick Actions</h3>
+              <h3>Share & Actions</h3>
               <div class="action-list">
+                <button class="action-btn" data-copy="${escapeHtml(permalinkUrl)}">Copy roast link</button>
                 <button class="action-btn" data-copy="${escapeHtml(
-                  data.share_card_copy.quote
-                )}">Copy share quote</button>
-                <button class="action-btn" data-copy="${escapeHtml(
-                  data.share_card_copy.score_text
-                )}">Copy score text</button>
-                <button class="action-btn" data-copy="${escapeHtml(permalinkUrl)}">Copy permalink</button>
+                  buildShareSummary(data, permalinkUrl)
+                )}">Copy summary</button>
+                <a class="action-btn action-btn-link" href="${escapeHtml(
+                  buildMailtoLink(data, permalinkUrl)
+                )}">Email draft</a>
                 <button class="action-btn" data-action="rerun">Roast another page</button>
               </div>
-            </section>
-
-            <section class="rail-card">
-              <h3>Jump to</h3>
-              <nav class="anchor-list">
-                <a href="#${sections.topProblems}">Top Problems</a>
-                <a href="#${sections.scores}">Scores</a>
-                <a href="#${sections.quickWins}">Quick Wins</a>
-                <a href="#${sections.rewrites}">Rewrites</a>
-                <a href="#${sections.mobile}">Mobile Roast</a>
-                <a href="#${sections.positives}">What's Working</a>
-              </nav>
-            </section>
-
-            <section class="rail-card">
-              <h3>${escapeHtml(data.share_card_copy.title)}</h3>
-              <p class="section-subtitle" style="margin-bottom:8px;">${escapeHtml(
-                data.share_card_copy.score_text
-              )}</p>
-              <p style="margin:0 0 10px; line-height:1.4;">${escapeHtml(
-                data.share_card_copy.quote
-              )}</p>
-              <ul class="rail-list">
-                ${data.share_card_copy.top_issues
-                  .map((item) => `<li>${escapeHtml(item)}</li>`)
-                  .join("")}
-              </ul>
             </section>
           </aside>
         </div>
@@ -1438,6 +1590,25 @@
     } catch (_err) {
       showToast("Copy failed");
     }
+  }
+
+  function buildShareSummary(data, permalinkUrl) {
+    const title = data && data.header ? data.header.title : "Roast summary";
+    const scoreText =
+      data && data.share_card_copy && data.share_card_copy.score_text
+        ? data.share_card_copy.score_text
+        : "";
+    const quote =
+      data && data.share_card_copy && data.share_card_copy.quote
+        ? data.share_card_copy.quote
+        : "";
+    return [title, scoreText, quote, permalinkUrl].filter(Boolean).join("\n");
+  }
+
+  function buildMailtoLink(data, permalinkUrl) {
+    const subject = encodeURIComponent("Take a look at this landing page roast");
+    const body = encodeURIComponent(buildShareSummary(data, permalinkUrl));
+    return `mailto:?subject=${subject}&body=${body}`;
   }
 
   function resetToHome() {
@@ -1585,6 +1756,7 @@
     state.resultMeta.roastId = (runOutput && runOutput.roastId) || "";
     state.screen = "results";
     state.analyzing = false;
+    persistCurrentRoastToHistory();
     render();
   }
 
@@ -1611,6 +1783,24 @@
       }
 
       const actionTarget = event.target.closest("[data-action]");
+      const historyTarget = event.target.closest("[data-history-index]");
+      if (historyTarget) {
+        const index = Number(historyTarget.getAttribute("data-history-index"));
+        const entry = state.roastHistory[index];
+        if (!entry || !entry.resultData) return;
+        state.form.url = entry.url || state.form.url;
+        state.form.mode = entry.mode || state.form.mode;
+        state.form.style = entry.style || state.form.style;
+        state.resultData = entry.resultData;
+        state.resultMeta = entry.resultMeta || state.resultMeta;
+        state.errorState = null;
+        state.formError = "";
+        state.analyzing = false;
+        state.screen = "results";
+        render();
+        return;
+      }
+
       if (!actionTarget) return;
       const action = actionTarget.getAttribute("data-action");
 
@@ -1655,6 +1845,7 @@
   }
 
   function bootstrap() {
+    state.roastHistory = loadRoastHistory();
     render();
     bindEvents();
   }
