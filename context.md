@@ -1015,3 +1015,72 @@ Run a quick end-to-end manual verification with both processes locally:
 3. confirm fallback behavior is usable again
 4. review the results page specifically with the question:
    - what can be removed, collapsed, or visually subordinated to make the roast feel sharper?
+
+## Resume Update (2026-03-05 20:40 CST): Example-result routing fixed + Figma capture workflow prepared
+
+### What was completed today
+
+#### 1. Figma capture workflow was initialized and validated
+- Used the Figma MCP flow and created/updated file:
+  - `https://www.figma.com/design/i2akHZBAHbKNl9sMANavMW`
+- Captured app/home visuals into Figma and verified node structure via MCP metadata/screenshot.
+- Added local capture support in `index.html` by injecting:
+  - `<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>`
+
+#### 2. Marketing board source page was created
+- Added local marketing composition files for social/app-store boards:
+  - `social-kit.html`
+  - `social-kit.css`
+- Boards implemented:
+  - Instagram portrait (1080x1350)
+  - X/Twitter landscape (1600x900)
+  - App Store portrait (1290x2796)
+- The board frame capture was pushed into the same Figma file (node root around `4:2`).
+
+#### 3. Important capture limitation discovered
+- HTML-to-design capture produced blank blocks where iframe app previews were expected.
+- Current Figma marketing board structure is in place, but screenshot surfaces inside those cards are placeholders from capture.
+- To finalize market-ready assets, we need static image screenshots (PNG) inserted instead of iframe content before capture.
+
+#### 4. "Examples of results" issue was fixed in product UI
+- User feedback: example results were not opening reliably.
+- Added direct one-click home actions in `app.js`:
+  - `View sample results`
+  - `View strong-page results`
+  - `View mobile-issues results`
+  - `View partial-evidence results`
+- Added supporting styles in `styles.css` (`.sample-results-actions`, `.sample-result-btn`).
+- Added URL query bootstrapping for deterministic example loading:
+  - `?example=sample`
+  - `?example=strong`
+  - `?example=mobile`
+  - `?example=partial`
+- Implemented with:
+  - `getExampleScenarioFromQuery()`
+  - `loadExampleResults(scenario)`
+
+#### 5. Runtime verification completed
+- Confirmed syntax:
+  - `node --check app.js` passed
+- Confirmed live server was serving updated JS/CSS via `curl` checks on `127.0.0.1:8091`.
+
+### Files changed today
+- `app.js`
+- `styles.css`
+- `index.html`
+- `social-kit.html` (new)
+- `social-kit.css` (new)
+- `context.md`
+
+### Working links (local examples)
+- `http://127.0.0.1:8091/?example=sample`
+- `http://127.0.0.1:8091/?example=strong`
+- `http://127.0.0.1:8091/?example=mobile`
+- `http://127.0.0.1:8091/?example=partial`
+
+### Next steps for tomorrow (recommended order)
+1. Generate true PNG screenshots for each example result state (sample/strong/mobile/partial) at target dimensions.
+2. Replace iframe-based preview surfaces in `social-kit.html` with static image tags using those PNGs.
+3. Re-run Figma MCP capture into `i2akHZBAHbKNl9sMANavMW` so IG/X/App Store boards include real app visuals.
+4. Export/share final marketing assets from Figma.
+5. Optional cleanup: remove capture script from `index.html` after capture session if no longer needed.

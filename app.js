@@ -1171,6 +1171,12 @@
             <div class="fixture-note">
               <strong>Just exploring?</strong> Load the sample and see the full roast format before running your own page.
             </div>
+            <div class="sample-results-actions">
+              <button class="sample-result-btn" type="button" data-action="view-example-results" data-example-scenario="sample">View sample results</button>
+              <button class="sample-result-btn" type="button" data-action="view-example-results" data-example-scenario="strong">View strong-page results</button>
+              <button class="sample-result-btn" type="button" data-action="view-example-results" data-example-scenario="mobile">View mobile-issues results</button>
+              <button class="sample-result-btn" type="button" data-action="view-example-results" data-example-scenario="partial">View partial-evidence results</button>
+            </div>
 
             ${historyMarkup}
           </section>
@@ -1611,6 +1617,61 @@
     return `mailto:?subject=${subject}&body=${body}`;
   }
 
+  function getExampleUrlForScenario(scenario) {
+    const key = String(scenario || "sample").toLowerCase();
+    if (key === "strong") return "https://example.com/strong";
+    if (key === "mobile") return "https://example.com/mobile";
+    if (key === "partial") return "https://example.com/partial";
+    return "https://example.com/sample";
+  }
+
+  function getExampleScenarioFromQuery() {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      const value = String(params.get("example") || "").toLowerCase();
+      if (!value) return "";
+      if (value === "sample" || value === "strong" || value === "mobile" || value === "partial") {
+        return value;
+      }
+      return "";
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  async function loadExampleResults(scenario) {
+    const selectedScenario = String(scenario || "sample").toLowerCase();
+    state.runId += 1;
+    const currentRunId = state.runId;
+    state.formError = "";
+    state.errorState = null;
+    state.analyzing = false;
+    state.form.url = getExampleUrlForScenario(selectedScenario);
+
+    const fallback = await runFixtureFallbackForScenario(selectedScenario);
+    if (state.runId !== currentRunId) return;
+
+    if (fallback.errorState) {
+      state.screen = "error";
+      state.errorState = fallback.errorState;
+      render();
+      return;
+    }
+
+    state.resultData = (fallback && fallback.ui) || FALLBACK_DATA;
+    state.resultMeta = {
+      partialEvidence: Boolean(fallback && fallback.partialEvidence),
+      scenario: (fallback && fallback.scenario) || selectedScenario,
+      source: "fixture",
+      apiFallback: true,
+      fallbackReason: `Loaded local ${selectedScenario} example.`,
+      roastId: "",
+    };
+    state.screen = "results";
+    persistCurrentRoastToHistory();
+    render();
+  }
+
   function resetToHome() {
     state.runId += 1;
     state.screen = "home";
@@ -1818,6 +1879,12 @@
         state.form.url = "https://example-saas.com";
         state.formError = "";
         if (state.screen === "home") render();
+        return;
+      }
+
+      if (action === "view-example-results") {
+        const scenario = actionTarget.getAttribute("data-example-scenario") || "sample";
+        loadExampleResults(scenario);
       }
     });
 
@@ -1848,6 +1915,10 @@
     state.roastHistory = loadRoastHistory();
     render();
     bindEvents();
+    const exampleScenario = getExampleScenarioFromQuery();
+    if (exampleScenario) {
+      loadExampleResults(exampleScenario);
+    }
   }
 
   window.addEventListener("error", function (event) {

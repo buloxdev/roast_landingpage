@@ -1137,6 +1137,30 @@ button {
   color: #6e5647;
 }
 
+.sample-results-actions {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.sample-result-btn {
+  text-align: left;
+  border: 1px solid #ead7c8;
+  background: rgba(255, 255, 255, 0.84);
+  border-radius: 12px;
+  padding: 11px 12px;
+  color: #2f2320;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.sample-result-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 95, 46, 0.34);
+  box-shadow: 0 10px 16px rgba(24, 17, 25, 0.08);
+}
+
 .history-card {
   margin-top: 16px;
   border-radius: 18px;
