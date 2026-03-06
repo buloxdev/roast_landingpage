@@ -368,7 +368,7 @@
   const state = {
     screen: "home",
     form: {
-      url: "https://example-saas.com",
+      url: "https://example.com/sample",
       mode: "brutal",
       style: "sharp",
     },
@@ -1908,7 +1908,7 @@
       }
 
       if (action === "use-example") {
-        state.form.url = "https://example-saas.com";
+        state.form.url = getExampleUrlForScenario("sample");
         state.formError = "";
         if (state.screen === "home") render();
         return;

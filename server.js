@@ -466,6 +466,11 @@ function hasPass1Shape(analysis) {
 
 function getScenarioFromUrl(urlValue) {
   const value = String(urlValue || "").toLowerCase();
+  if (value.includes("example-saas.com")) return "sample";
+  if (value.includes("/sample")) return "sample";
+  if (value.includes("/strong")) return "strong";
+  if (value.includes("/mobile")) return "mobile";
+  if (value.includes("/partial")) return "partial";
   if (value.includes("blocked") || value.includes("login") || value.includes("private")) return "blocked";
   if (value.includes("timeout")) return "timeout";
   if (value.includes("dashboard") || value.includes("/app")) return "redirected";
@@ -473,6 +478,56 @@ function getScenarioFromUrl(urlValue) {
   if (value.includes("compose-fail")) return "compose-fail";
   if (value.includes("rate-limit")) return "rate-limit";
   return "normal";
+}
+
+function getDemoPageSnapshot(pageUrl, scenario) {
+  const htmlByScenario = {
+    sample: `
+      <html><head><title>Example SaaS</title><meta name="description" content="Turn customer feedback into product momentum."></head>
+      <body>
+        <h1>Turn feedback into momentum</h1>
+        <h2>Collect requests, spot patterns, and decide what to build next.</h2>
+        <p>Use one workspace for customer calls, support tickets, and product notes so your team can stop guessing.</p>
+        <p>Trusted by product teams at fast-moving SaaS companies.</p>
+        <a href="/demo">Get started</a>
+        <a href="/learn">Learn more</a>
+      </body></html>
+    `,
+    strong: `
+      <html><head><title>Strong Example SaaS</title><meta name="description" content="Customer intelligence for product teams."></head>
+      <body>
+        <h1>Customer intelligence for product teams</h1>
+        <h2>Connect feedback channels, uncover recurring themes, and ship with confidence.</h2>
+        <p>See what customers are asking for, what revenue is at risk, and which improvements will move adoption.</p>
+        <p>Trusted by Notion, Framer, and modern product orgs.</p>
+        <a href="/trial">Start free trial</a>
+      </body></html>
+    `,
+    mobile: `
+      <html><head><title>Mobile Example SaaS</title><meta name="description" content="A deliberately crowded hero for mobile testing."></head>
+      <body>
+        <h1>The all-in-one feedback operating system for high-growth teams that need more context before they can prioritize anything</h1>
+        <h2>Collect requests, connect calls, sync CRM notes, tag churn risk, and align support and product in one place.</h2>
+        <p>This hero is intentionally long so the mobile roast has something obvious to flag.</p>
+        <a href="/demo">Book a demo</a>
+      </body></html>
+    `,
+    partial: `
+      <html><head><title>Partial Example</title></head>
+      <body>
+        <h1>Feedback, organized.</h1>
+        <p>Simple workspace for collecting what customers ask for.</p>
+      </body></html>
+    `,
+  };
+
+  const html = htmlByScenario[scenario];
+  if (!html) return null;
+  return {
+    ok: true,
+    html,
+    finalUrl: pageUrl,
+  };
 }
 
 function shouldForceComposeFailFromAnalysis(analysis) {
@@ -484,6 +539,11 @@ function shouldForceComposeFailFromAnalysis(analysis) {
 }
 
 async function fetchPageSnapshot(pageUrl) {
+  const scenario = getScenarioFromUrl(pageUrl);
+  if (scenario === "sample" || scenario === "strong" || scenario === "mobile" || scenario === "partial") {
+    return getDemoPageSnapshot(pageUrl, scenario);
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 12000);
 
