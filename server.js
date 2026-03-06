@@ -411,6 +411,10 @@ function logServerError(scope, requestId, error, extra = {}) {
   console.error(`[${scope}]`, JSON.stringify(details));
 }
 
+function logServerInfo(scope, requestId, details = {}) {
+  console.log(`[${scope}]`, JSON.stringify({ requestId, ...details }));
+}
+
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     let raw = "";
@@ -1281,6 +1285,19 @@ async function handleAnalyze(req, res, requestId) {
       extraction,
       fallbackAnalysis,
     });
+    logServerInfo("analyze_success", requestId, {
+      url: body.url,
+      mode,
+      style,
+      pass: "pass1",
+      model: OPENAI_PASS1_MODEL,
+      provider:
+        analysis && analysis.meta && analysis.meta.provider ? analysis.meta.provider : "",
+      provider_model:
+        analysis && analysis.meta && analysis.meta.provider_model
+          ? analysis.meta.provider_model
+          : "",
+    });
   } catch (error) {
     logServerError("analyze", requestId, error, {
       url: body.url,
@@ -1312,6 +1329,7 @@ async function handleAnalyze(req, res, requestId) {
     status: "analyzed",
     input: record.input,
     analysis: clone(analysis),
+    analysis_meta: analysis && analysis.meta ? clone(analysis.meta) : null,
     request_id: requestId,
     timestamp,
   });
@@ -1398,6 +1416,11 @@ async function handleCompose(req, res, requestId) {
           : "sharp",
       analysis: sourceAnalysis,
       fallbackUi,
+    });
+    logServerInfo("compose_success", requestId, {
+      roast_id: typeof body.roast_id === "string" ? body.roast_id : "",
+      pass: "pass2",
+      model: OPENAI_PASS2_MODEL,
     });
   } catch (error) {
     logServerError("compose", requestId, error, {

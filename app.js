@@ -381,6 +381,8 @@
       apiFallback: false,
       fallbackReason: "",
       roastId: "",
+      provider: "",
+      providerModel: "",
     },
     progress: 0,
     completedSteps: 0,
@@ -464,6 +466,8 @@
         apiFallback: state.resultMeta.apiFallback,
         fallbackReason: state.resultMeta.fallbackReason,
         roastId: state.resultMeta.roastId,
+        provider: state.resultMeta.provider,
+        providerModel: state.resultMeta.providerModel,
       },
     };
   }
@@ -671,6 +675,17 @@
           `Using local fixture because ${API_BASE_URL} is unavailable`,
       };
     }
+    if (
+      shouldShowDevFallbackUi() &&
+      state.resultMeta &&
+      state.resultMeta.provider &&
+      state.resultMeta.providerModel
+    ) {
+      return {
+        label: `AI: ${state.resultMeta.providerModel}`,
+        title: `Results composed from ${state.resultMeta.provider} using ${state.resultMeta.providerModel}`,
+      };
+    }
     return {
       label: "API",
       title: `Results loaded from ${API_BASE_URL}`,
@@ -758,6 +773,7 @@
             analyze.analysis.meta.evidence_status === "partial"
         ),
       roastId: analyze.roast_id || "",
+      analysisMeta: analyze.analysis_meta || (analyze.analysis && analyze.analysis.meta) || null,
     };
   }
 
@@ -1685,6 +1701,8 @@
       apiFallback: false,
       fallbackReason: "",
       roastId: "",
+      provider: "",
+      providerModel: "",
     };
     state.progress = 0;
     state.completedSteps = 0;
@@ -1711,6 +1729,8 @@
       apiFallback: false,
       fallbackReason: "",
       roastId: "",
+      provider: "",
+      providerModel: "",
     };
     state.runId += 1;
     const currentRunId = state.runId;
@@ -1729,6 +1749,14 @@
           apiFallback: false,
           scenario: state.resultMeta.scenario,
           roastId: apiRun.roastId || "",
+          provider:
+            apiRun.analysisMeta && typeof apiRun.analysisMeta.provider === "string"
+              ? apiRun.analysisMeta.provider
+              : "",
+          providerModel:
+            apiRun.analysisMeta && typeof apiRun.analysisMeta.provider_model === "string"
+              ? apiRun.analysisMeta.provider_model
+              : "",
         };
       } catch (error) {
         const mappedError = mapApiErrorToErrorState(error);
@@ -1755,6 +1783,8 @@
           apiFallback: true,
           scenario: fallback.scenario || state.resultMeta.scenario,
           roastId: "",
+          provider: "",
+          providerModel: "",
           fallbackReason:
             error.code === "API_UNAVAILABLE"
               ? `Could not reach ${API_BASE_URL} (${error.message}).`
@@ -1815,6 +1845,8 @@
     state.resultMeta.apiFallback = Boolean(runOutput && runOutput.apiFallback);
     state.resultMeta.fallbackReason = (runOutput && runOutput.fallbackReason) || "";
     state.resultMeta.roastId = (runOutput && runOutput.roastId) || "";
+    state.resultMeta.provider = (runOutput && runOutput.provider) || "";
+    state.resultMeta.providerModel = (runOutput && runOutput.providerModel) || "";
     state.screen = "results";
     state.analyzing = false;
     persistCurrentRoastToHistory();
