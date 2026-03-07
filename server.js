@@ -157,6 +157,26 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function mergeJsonLike(baseValue, overlayValue) {
+  if (overlayValue == null) return clone(baseValue);
+  if (Array.isArray(overlayValue)) return clone(overlayValue);
+  if (!isPlainObject(baseValue) || !isPlainObject(overlayValue)) return clone(overlayValue);
+
+  const merged = clone(baseValue);
+  for (const [key, value] of Object.entries(overlayValue)) {
+    if (!Object.prototype.hasOwnProperty.call(baseValue, key)) {
+      merged[key] = clone(value);
+      continue;
+    }
+    merged[key] = mergeJsonLike(baseValue[key], value);
+  }
+  return merged;
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -1256,14 +1276,15 @@ async function buildAiPass2Ui({ requestedUrl, mode, style, analysis, fallbackUi 
     temperature: 0.8,
   });
 
-  const validation = pass2ValidationApi.validatePass2Payload(raw);
+  const mergedUi = mergeJsonLike(fallbackUi, raw);
+  const validation = pass2ValidationApi.validatePass2Payload(mergedUi);
   if (!validation.ok) {
     const error = new Error("OpenAI Pass 2 output failed pass2 validation.");
     error.validation = validation;
     throw error;
   }
 
-  return raw || fallbackUi;
+  return mergedUi;
 }
 
 async function handleAnalyze(req, res, requestId) {
@@ -1484,6 +1505,11 @@ async function handleCompose(req, res, requestId) {
     });
   } catch (error) {
     logServerError("compose", requestId, error, {
+      roast_id: typeof body.roast_id === "string" ? body.roast_id : "",
+      pass: "pass2",
+      model: OPENAI_PASS2_MODEL,
+    });
+    logServerInfo("compose_fallback", requestId, {
       roast_id: typeof body.roast_id === "string" ? body.roast_id : "",
       pass: "pass2",
       model: OPENAI_PASS2_MODEL,
