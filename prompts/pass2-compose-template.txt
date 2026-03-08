@@ -10,6 +10,8 @@ Inputs
 - Requested URL: {{requested_url}}
 - Roast mode/tone label for UI: {{roast_mode_label}}
 - Roast style instruction: {{roast_style_instruction}}
+- Roast style examples:
+{{roast_style_examples}}
 - Pass 1 analysis JSON:
 {{pass1_analysis_json}}
 
@@ -24,6 +26,7 @@ Style application guidance
   - `summary_panel.one_liner`
   - the first 3 `issue_cards[*].title`
   - `share_card_copy.quote`
+- Rewrite those visible fields fresh for the selected style. Do not preserve bland default phrasing if a stronger line can say the same thing.
 - Do not let all styles collapse into generic "smart copywriter" wording.
 - Keep the humor clean. No vulgar language.
 - If the selected style is:

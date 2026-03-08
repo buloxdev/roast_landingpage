@@ -706,6 +706,34 @@ function getRoastStyleInstruction(style) {
   return "Use a clean observational roast style. Notice the odd patterns, vague habits, and quiet contradictions in the page, then point them out in a playful, useful way. Keep it crisp, clever, and free of vulgar language.";
 }
 
+function getRoastStyleFewShot(style) {
+  if (style === "deadpan") {
+    return [
+      "Header title example: \"A real product. A still-blurry pitch.\"",
+      "One-liner example: \"The page is presentable. The message is still late.\"",
+      "Issue title example 1: \"Technically a headline. Not yet a reason to care.\"",
+      "Issue title example 2: \"It is a button. It is not yet a next step.\"",
+      "Share quote example: \"Clean design. Delayed meaning.\"",
+    ].join("\\n");
+  }
+  if (style === "bold") {
+    return [
+      "Header title example: \"Strong surface. Soft pitch.\"",
+      "One-liner example: \"The page looks ready for traffic. The message still folds under pressure.\"",
+      "Issue title example 1: \"The headline walks on stage without a point.\"",
+      "Issue title example 2: \"The next step shows up with no conviction.\"",
+      "Share quote example: \"Polished page. Underpowered message.\"",
+    ].join("\\n");
+  }
+  return [
+    "Header title example: \"This page keeps acting like we already know what it does.\"",
+    "One-liner example: \"The design is doing its job. The message keeps taking the scenic route.\"",
+    "Issue title example 1: \"The headline keeps hinting instead of saying.\"",
+    "Issue title example 2: \"The next step sounds like it was named at the last minute.\"",
+    "Share quote example: \"Nice page. Strange habit of avoiding the point.\"",
+  ].join("\\n");
+}
+
 function scoreBandFromOverall(score) {
   if (score >= 90) return "Strong page, mostly optimization";
   if (score >= 70) return "Good page, still leaving conversions on the table";
@@ -1262,6 +1290,7 @@ async function buildAiPass2Ui({ requestedUrl, mode, style, analysis, fallbackUi 
     requested_url: requestedUrl,
     roast_mode_label: roastModeLabel,
     roast_style_instruction: getRoastStyleInstruction(style),
+    roast_style_examples: getRoastStyleFewShot(style),
     pass1_analysis_json: asJsonString(analysis),
   });
 
