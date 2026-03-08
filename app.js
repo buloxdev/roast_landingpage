@@ -534,7 +534,8 @@
     if (value.includes("partial")) return "partial";
     if (value.includes("strong")) return "strong";
     if (value.includes("mobile")) return "mobile";
-    return "sample";
+    if (value.includes("/sample") || value.includes("example-saas.com")) return "sample";
+    return "normal";
   }
 
   async function withTimeout(promise, ms, message) {
@@ -599,13 +600,14 @@
   async function postJson(path, body, phase) {
     let response;
     try {
+      const timeoutMs = phase === "analyze" ? 70000 : 30000;
       response = await withTimeout(
         fetch(getApiUrl(path), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         }),
-        7000,
+        timeoutMs,
         `${phase} request timed out`
       );
     } catch (error) {
@@ -793,6 +795,7 @@
     if (scenario === "redirected") return { errorState: getErrorStateFromTemplate(ERROR_COPY.redirected) };
     if (scenario === "analysis-fail") return { errorState: getErrorStateFromTemplate(ERROR_COPY.analysisFailed) };
     if (scenario === "timeout") return { errorState: getErrorStateFromTemplate(ERROR_COPY.timeout) };
+    if (scenario === "normal") return { errorState: getErrorStateFromTemplate(ERROR_COPY.analysisFailed) };
 
     const fixtureKind =
       scenario === "partial"
