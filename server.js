@@ -33,6 +33,7 @@ const OPENAI_BASE_URL = String(process.env.OPENAI_BASE_URL || "https://api.opena
 const OPENAI_PASS1_MODEL = process.env.OPENAI_PASS1_MODEL || "gpt-4o-mini";
 const OPENAI_PASS2_MODEL = process.env.OPENAI_PASS2_MODEL || "gpt-4o-mini";
 const SERVER_VERSION = "compose-inline-20260307c";
+let sharedBrowserPromise = null;
 
 const PASS2_SAMPLE_PATH = path.join(__dirname, "fixtures", "pass2-ui.sample.json");
 const PASS1_SCHEMA_PATH = path.join(__dirname, "schemas", "pass1-analysis-contract.json");
@@ -325,6 +326,35 @@ function renderTemplate(template, replacements) {
   });
 }
 
+function getPlaywrightChromium() {
+  try {
+    return require("playwright").chromium;
+  } catch {
+    return null;
+  }
+}
+
+async function getSharedBrowser() {
+  const chromium = getPlaywrightChromium();
+  if (!chromium) return null;
+  if (!sharedBrowserPromise) {
+    sharedBrowserPromise = chromium
+      .launch({
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+        ],
+      })
+      .catch((error) => {
+        sharedBrowserPromise = null;
+        throw error;
+      });
+  }
+  return sharedBrowserPromise;
+}
+
 function extractMessageContent(message) {
   if (!message) return "";
   if (typeof message.content === "string") return message.content;
@@ -559,7 +589,7 @@ function shouldForceComposeFailFromAnalysis(analysis) {
   return title.includes("compose-fail");
 }
 
-async function fetchPageSnapshot(pageUrl) {
+async function fetchPageSnapshotViaHttp(pageUrl) {
   const scenario = getScenarioFromUrl(pageUrl);
   if (scenario === "sample" || scenario === "strong" || scenario === "mobile" || scenario === "partial") {
     return getDemoPageSnapshot(pageUrl, scenario);
@@ -609,6 +639,130 @@ async function fetchPageSnapshot(pageUrl) {
   }
 }
 
+async function fetchPageSnapshotViaBrowser(pageUrl) {
+  const browser = await getSharedBrowser();
+  if (!browser) {
+    const error = new Error("Playwright browser runtime is unavailable.");
+    error.code = "BROWSER_UNAVAILABLE";
+    throw error;
+  }
+
+  const context = await browser.newContext({
+    userAgent:
+      "Mozilla/5.0 (compatible; RoastLandingPageBot/1.0; +https://roastlandingpage.vercel.app)",
+    viewport: { width: 1440, height: 960 },
+  });
+  const page = await context.newPage();
+  page.setDefaultNavigationTimeout(18000);
+  page.setDefaultTimeout(8000);
+
+  try {
+    const response = await page.goto(pageUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 18000,
+    });
+
+    if (response) {
+      const status = response.status();
+      if (status === 401 || status === 403) {
+        return {
+          ok: false,
+          status,
+          code: "PAGE_BLOCKED",
+          reason: "Page appears behind login or bot protection",
+        };
+      }
+      if (!response.ok()) {
+        return {
+          ok: false,
+          status,
+          code: "FETCH_FAILED",
+          reason: `Page request returned ${status}`,
+        };
+      }
+      const contentType = String(response.headers()["content-type"] || "").toLowerCase();
+      if (contentType && !contentType.includes("text/html")) {
+        return {
+          ok: false,
+          status: 422,
+          code: "FETCH_FAILED",
+          reason: "URL did not return an HTML page",
+        };
+      }
+    }
+
+    try {
+      await page.waitForLoadState("networkidle", { timeout: 4000 });
+    } catch {
+      // A quieter page is ideal, but many marketing sites keep connections open.
+    }
+
+    const finalUrl = page.url() || pageUrl;
+    if (getScenarioFromUrl(finalUrl) === "redirected") {
+      return {
+        ok: false,
+        status: 422,
+        code: "FETCH_FAILED",
+        reason: "Redirected to app/dashboard page instead of marketing page",
+      };
+    }
+
+    const html = await page.content();
+    return { ok: true, html, finalUrl, rendered: true };
+  } catch (error) {
+    if (error && /timeout|timed out|Timeout/i.test(String(error.message || ""))) {
+      return {
+        ok: false,
+        status: 503,
+        code: "FETCH_FAILED",
+        reason: "Page browser render timed out",
+        retryable: true,
+      };
+    }
+    throw error;
+  } finally {
+    await context.close().catch(() => {});
+  }
+}
+
+async function fetchPageSnapshot(pageUrl, requestId) {
+  const scenario = getScenarioFromUrl(pageUrl);
+  if (scenario === "sample" || scenario === "strong" || scenario === "mobile" || scenario === "partial") {
+    return getDemoPageSnapshot(pageUrl, scenario);
+  }
+
+  try {
+    const renderedSnapshot = await fetchPageSnapshotViaBrowser(pageUrl);
+    if (renderedSnapshot && renderedSnapshot.ok) {
+      if (requestId) {
+        logServerInfo("page_snapshot", requestId, {
+          source: "browser",
+          url: pageUrl,
+          final_url: renderedSnapshot.finalUrl || pageUrl,
+        });
+      }
+      return renderedSnapshot;
+    }
+    if (renderedSnapshot && !renderedSnapshot.ok) {
+      return renderedSnapshot;
+    }
+  } catch (error) {
+    if (requestId) {
+      logServerError("page_snapshot_browser", requestId, error, { url: pageUrl });
+    }
+  }
+
+  const httpSnapshot = await fetchPageSnapshotViaHttp(pageUrl);
+  if (requestId) {
+    logServerInfo("page_snapshot", requestId, {
+      source: "http",
+      url: pageUrl,
+      final_url: httpSnapshot && httpSnapshot.finalUrl ? httpSnapshot.finalUrl : pageUrl,
+    });
+  }
+  return httpSnapshot;
+}
+
 function buildExtraction(html, finalUrl) {
   const title = uniqueNonEmpty(extractTagTexts(html, "title", 1), 1)[0] || "";
   const meta = extractMetaContents(html);
@@ -625,6 +779,7 @@ function buildExtraction(html, finalUrl) {
 
   return {
     finalUrl,
+    rendered: false,
     title,
     description,
     heroHeadline,
@@ -996,6 +1151,7 @@ function buildRealAnalysis({ url, mode, extraction }) {
       evidence_status: evidenceStatus,
       warnings,
       extraction: {
+        mode: extraction.rendered ? "browser" : "http",
         title: extraction.title,
         hero_headline: extraction.heroHeadline,
         hero_support: extraction.heroSupport,
@@ -1556,7 +1712,7 @@ async function handleAnalyze(req, res, requestId) {
   const mode = typeof body.mode === "string" && body.mode.trim() ? body.mode.trim() : "balanced";
   const style = typeof body.style === "string" && body.style.trim() ? body.style.trim() : "sharp";
   const roastId = makeId("roast");
-  const snapshot = await fetchPageSnapshot(body.url);
+  const snapshot = await fetchPageSnapshot(body.url, requestId);
   if (!snapshot.ok) {
     return sendError(
       res,
@@ -1573,6 +1729,7 @@ async function handleAnalyze(req, res, requestId) {
 
   let analysis;
   const extraction = buildExtraction(snapshot.html, snapshot.finalUrl);
+  extraction.rendered = Boolean(snapshot.rendered);
   const fallbackAnalysis = buildRealAnalysis({ url: body.url, mode, extraction });
   try {
     requireOpenAiConfigured();
