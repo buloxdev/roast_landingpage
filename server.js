@@ -694,13 +694,16 @@ function buildPromptEvidence(extraction, requestedUrl, mode) {
 }
 
 function getRoastStyleInstruction(style) {
+  if (style === "observational") {
+    return "Use a clean observational roast style. Notice the odd patterns, vague habits, and quiet contradictions in the page, then point them out in a playful, useful way. Keep it crisp, clever, and free of vulgar language.";
+  }
   if (style === "deadpan") {
-    return "Use a dry, understated deadpan tone. Be concise, quietly cutting, and slightly amused. Favor lines that sound effortless rather than loud.";
+    return "Use a dry, understated deadpan tone. Be concise, quietly cutting, and slightly amused. Favor lines that sound effortless rather than loud. Keep the language clean and never use vulgar phrasing.";
   }
-  if (style === "unhinged") {
-    return "Use a chaotic, high-energy roast style with more surprise and edge. Let titles and one-liners hit harder, but keep every joke attached to useful feedback.";
+  if (style === "bold") {
+    return "Use a bold, high-contrast roast style. Make the strongest problems feel unmistakable, use punchier framing, and land harder without becoming sloppy or cruel. Keep the language clean and never use vulgar phrasing.";
   }
-  return "Use a sharp, witty roast style that feels playful, confident, and professional. Prefer punchy lines over safe generic phrasing.";
+  return "Use a clean observational roast style. Notice the odd patterns, vague habits, and quiet contradictions in the page, then point them out in a playful, useful way. Keep it crisp, clever, and free of vulgar language.";
 }
 
 function scoreBandFromOverall(score) {

@@ -318,19 +318,19 @@
   ];
   const STYLE_OPTIONS = [
     {
-      value: "sharp",
-      label: "Sharp",
-      hint: "Witty, clean, still useful",
+      value: "observational",
+      label: "Observational",
+      hint: "Pattern-spotting, playful, and clean",
     },
     {
       value: "deadpan",
       label: "Deadpan",
-      hint: "Dry and understated",
+      hint: "Dry, restrained, and quietly sharp",
     },
     {
-      value: "unhinged",
-      label: "Unhinged",
-      hint: "Chaotic, but still actionable",
+      value: "bold",
+      label: "Bold",
+      hint: "Confident, punchy, and harder-hitting",
     },
   ];
 
@@ -370,7 +370,7 @@
     form: {
       url: "https://example.com/sample",
       mode: "brutal",
-      style: "sharp",
+      style: "observational",
     },
     formError: "",
     errorState: null,
@@ -740,16 +740,19 @@
       };
     }
 
-    const compose = await postJson(
-      "/compose",
-      {
-        roast_id: analyze.roast_id,
-        analysis: analyze.analysis,
-        mode,
-        style,
-      },
-      "compose"
-    );
+    let compose = analyze.ui;
+    if (!isObject(compose)) {
+      compose = await postJson(
+        "/compose",
+        {
+          roast_id: analyze.roast_id,
+          analysis: analyze.analysis,
+          mode,
+          style,
+        },
+        "compose"
+      );
+    }
 
     const pass2Validation = validatePass2PayloadSafe(compose);
     if (!pass2Validation.ok) {
@@ -773,7 +776,15 @@
             analyze.analysis.meta.evidence_status === "partial"
         ),
       roastId: analyze.roast_id || "",
-      analysisMeta: analyze.analysis_meta || (analyze.analysis && analyze.analysis.meta) || null,
+      analysisMeta: {
+        ...((analyze.analysis_meta || (analyze.analysis && analyze.analysis.meta) || null) || {}),
+        ...(analyze.compose_meta && analyze.compose_meta.provider
+          ? {
+              provider: analyze.compose_meta.provider,
+              provider_model: analyze.compose_meta.provider_model || "",
+            }
+          : {}),
+      },
     };
   }
 
