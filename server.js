@@ -1160,6 +1160,119 @@ function fillToLength(values, fallbackValues, expectedLength) {
   return merged.slice(0, expectedLength);
 }
 
+function buildStyledHeaderTitle(style, score) {
+  if (style === "deadpan") {
+    if (score >= 70) return "A real offer. Still not a clean pitch.";
+    if (score >= 50) return "Presentable page. Delayed meaning.";
+    return "The page exists. The pitch is still unclear.";
+  }
+  if (style === "bold") {
+    if (score >= 70) return "Strong surface. Soft pitch.";
+    if (score >= 50) return "Polished page. Underpowered message.";
+    return "The page looks ready. The pitch is not.";
+  }
+  if (score >= 70) return "This page is close, but it still dodges the point.";
+  if (score >= 50) return "The design is carrying more than the message.";
+  return "This page keeps asking the design to explain the offer.";
+}
+
+function buildStyledOneLiner(style, analysis, fallbackText) {
+  const firstIssue = Array.isArray(analysis.issues) && analysis.issues[0] ? analysis.issues[0] : null;
+  const category = firstIssue && firstIssue.category ? String(firstIssue.category) : "";
+
+  if (/CTA quality/i.test(category)) {
+    if (style === "deadpan") return "The page has a button. The next step is still oddly vague.";
+    if (style === "bold") return "The page reaches for action, then blinks at the last second.";
+    return "The page gets to the next step and suddenly starts speaking in placeholders.";
+  }
+  if (/Messaging \/ differentiation/i.test(category)) {
+    if (style === "deadpan") return "The message is competent. It is not distinctive.";
+    if (style === "bold") return "The page looks market-ready. The differentiation does not.";
+    return "The page says plenty of familiar things and somehow avoids saying the memorable one.";
+  }
+  if (style === "deadpan") return "The page is credible. The message is still late.";
+  if (style === "bold") return "The page looks polished. The pitch still folds under pressure.";
+  return "The page looks sharp, then takes the scenic route to the actual point.";
+}
+
+function buildStyledIssueTitle(style, issue, fallbackTitle) {
+  const category = issue && issue.category ? String(issue.category) : "";
+  if (/Clarity of offer|Headline strength/i.test(category)) {
+    if (style === "deadpan") return "Technically a headline. Not yet a clear offer.";
+    if (style === "bold") return "The headline shows up with no real point.";
+    return "The headline keeps hinting instead of saying.";
+  }
+  if (/CTA quality/i.test(category)) {
+    if (style === "deadpan") return "It is a button. It is not yet a next step.";
+    if (style === "bold") return "The next step shows up with no conviction.";
+    return "The next step sounds like it was named at the last minute.";
+  }
+  if (/Messaging \/ differentiation/i.test(category)) {
+    if (style === "deadpan") return "The message is present. The distinction is not.";
+    if (style === "bold") return "The pitch blends in where it should separate.";
+    return "The page says the normal things, which is the problem.";
+  }
+  if (/Trust \/ proof/i.test(category)) {
+    if (style === "deadpan") return "Credibility is implied. Proof is still thin.";
+    if (style === "bold") return "The page asks for trust before it earns it.";
+    return "The page wants trust to arrive on vibes alone.";
+  }
+  if (/Objection handling/i.test(category)) {
+    if (style === "deadpan") return "The buyer questions remain politely unanswered.";
+    if (style === "bold") return "The page leaves the hard questions hanging.";
+    return "The page keeps hoping nobody asks the obvious buying questions.";
+  }
+  if (/Mobile experience/i.test(category)) {
+    if (style === "deadpan") return "On mobile, this gets crowded quickly.";
+    if (style === "bold") return "Mobile is doing too much before the point lands.";
+    return "On mobile, the page starts multitasking before it explains itself.";
+  }
+  return fallbackTitle;
+}
+
+function buildStyledShareQuote(style, analysis) {
+  const firstIssue = Array.isArray(analysis.issues) && analysis.issues[0] ? analysis.issues[0] : null;
+  const category = firstIssue && firstIssue.category ? String(firstIssue.category) : "";
+
+  if (/CTA quality/i.test(category)) {
+    if (style === "deadpan") return "The button is there. The reason to click is not.";
+    if (style === "bold") return "Visible CTA. Missing conviction.";
+    return "The next step sounds like it got named on the way to launch.";
+  }
+  if (/Messaging \/ differentiation/i.test(category)) {
+    if (style === "deadpan") return "Competent message. Weak distinction.";
+    if (style === "bold") return "Clean page. Blended-in pitch.";
+    return "The page says plenty. Very little of it sticks.";
+  }
+  if (style === "deadpan") return "Clean design. Delayed meaning.";
+  if (style === "bold") return "Polished page. Underpowered message.";
+  return "Nice page. Strange habit of avoiding the point.";
+}
+
+function applyStyleOverlay(ui, analysis, style) {
+  const next = clone(ui);
+  const score = clamp(Number(next.header && next.header.score_value) || 0, 0, 100);
+  next.header.title = buildStyledHeaderTitle(style, score);
+  next.header.subtitle = truncate(buildStyledOneLiner(style, analysis, next.header.subtitle), 180);
+  next.summary_panel.one_liner = truncate(buildStyledOneLiner(style, analysis, next.summary_panel.one_liner), 180);
+  next.share_card_copy.quote = truncate(buildStyledShareQuote(style, analysis), 140);
+
+  if (Array.isArray(next.issue_cards)) {
+    next.issue_cards = next.issue_cards.map((card, index) => ({
+      ...card,
+      title: index < 3 ? buildStyledIssueTitle(style, card, card.title) : card.title,
+    }));
+  }
+
+  next.summary_panel.top_3_problems = fillToLength(
+    (next.issue_cards || []).slice(0, 3).map((issue) => issue.title),
+    next.summary_panel.top_3_problems,
+    3
+  );
+
+  return next;
+}
+
 function buildPass2Ui(analysis, mode) {
   const ui = clone(pass2Sample);
   const issues = Array.isArray(analysis.issues) ? analysis.issues.slice(0, 5) : [];
@@ -1309,7 +1422,7 @@ async function buildAiPass2Ui({ requestedUrl, mode, style, analysis, fallbackUi 
     temperature: 1.0,
   });
 
-  const mergedUi = mergeJsonLike(fallbackUi, raw);
+  const mergedUi = applyStyleOverlay(mergeJsonLike(fallbackUi, raw), analysis, style);
   const validation = pass2ValidationApi.validatePass2Payload(mergedUi);
   if (!validation.ok) {
     const error = new Error("OpenAI Pass 2 output failed pass2 validation.");
@@ -1380,7 +1493,7 @@ async function composeUiWithFallback({
       model: OPENAI_PASS2_MODEL,
     });
     return {
-      ui: fallbackUi,
+      ui: applyStyleOverlay(fallbackUi, analysis, style),
       composeMeta: {
         provider: "fallback",
         provider_model: "",
