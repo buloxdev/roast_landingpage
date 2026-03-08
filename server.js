@@ -1296,7 +1296,26 @@ async function composeUiWithFallback({
   style,
   analysis,
 }) {
-  const fallbackUi = buildPass2Ui(analysis, mode);
+  logServerInfo("compose_begin", requestId, {
+    roast_id: roastId || "",
+    pass: "pass2",
+    mode,
+    style,
+  });
+
+  let fallbackUi;
+  try {
+    fallbackUi = buildPass2Ui(analysis, mode);
+  } catch (error) {
+    logServerError("compose_base", requestId, error, {
+      roast_id: roastId || "",
+      pass: "pass2",
+      mode,
+      style,
+    });
+    fallbackUi = clone(pass2Sample);
+  }
+
   try {
     requireOpenAiConfigured();
     const ui = await buildAiPass2Ui({
