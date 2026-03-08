@@ -19,6 +19,17 @@ Style application guidance
 - Put most of the personality into the headline, one-liner, issue titles, and share quote.
 - Keep fixes direct and concrete.
 - If a line can be made sharper, shorter, and more memorable without changing meaning, do that.
+- Make the chosen roast style visible immediately in:
+  - `header.title`
+  - `summary_panel.one_liner`
+  - the first 3 `issue_cards[*].title`
+  - `share_card_copy.quote`
+- Do not let all styles collapse into generic "smart copywriter" wording.
+- Keep the humor clean. No vulgar language.
+- If the selected style is:
+  - `Observational`: notice odd habits, contradictions, and familiar homepage behavior
+  - `Deadpan`: use restraint, understatement, and calm disappointment
+  - `Bold`: use cleaner high-contrast framing and stronger verdict language
 
 Output requirements (exact top-level keys, no extras)
 - header

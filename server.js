@@ -1277,7 +1277,7 @@ async function buildAiPass2Ui({ requestedUrl, mode, style, analysis, fallbackUi 
         schema: pass2Schema,
       },
     },
-    temperature: 0.8,
+    temperature: 1.0,
   });
 
   const mergedUi = mergeJsonLike(fallbackUi, raw);
