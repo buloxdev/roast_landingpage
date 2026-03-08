@@ -390,6 +390,7 @@
     roastHistory: [],
     runId: 0,
     analyzing: false,
+    analyzingSlow: false,
   };
 
   const fixtureCache = Object.create(null);
@@ -1217,11 +1218,17 @@
   }
 
   function renderAnalyzing() {
-    const activeStepIndex = Math.min(state.completedSteps, ANALYSIS_STEPS.length - 1);
-    const detail =
-      state.progress >= 100
-        ? "Opening the desktop roast report..."
-        : ANALYSIS_STEPS[activeStepIndex].detail;
+    const waitingOnBackend =
+      state.progress < 100 && state.completedSteps >= ANALYSIS_STEPS.length;
+    const visibleCompletedSteps = waitingOnBackend
+      ? ANALYSIS_STEPS.length - 1
+      : state.completedSteps;
+    const activeStepIndex = Math.min(visibleCompletedSteps, ANALYSIS_STEPS.length - 1);
+    const detail = state.progress >= 100
+      ? "Opening the desktop roast report..."
+      : state.analyzingSlow
+      ? "This run is taking longer than usual. The hosted backend may be waking up, or the page may be script-heavy."
+      : ANALYSIS_STEPS[activeStepIndex].detail;
 
     return `
       <div class="shell">
@@ -1255,8 +1262,8 @@
 
             <ol class="analysis-steps">
               ${ANALYSIS_STEPS.map((step, index) => {
-                const isDone = index < state.completedSteps;
-                const isActive = !isDone && index === state.completedSteps && state.progress < 100;
+                const isDone = index < visibleCompletedSteps;
+                const isActive = !isDone && index === visibleCompletedSteps && state.progress < 100;
                 const rowClass = isDone ? "is-done" : isActive ? "is-active" : "is-pending";
                 const statusText = isDone ? "Done" : isActive ? "In progress" : "Waiting";
                 return `
@@ -1750,9 +1757,15 @@
     const currentRunId = state.runId;
     state.screen = "analyzing";
     state.analyzing = true;
+    state.analyzingSlow = false;
     state.progress = 4;
     state.completedSteps = 0;
     render();
+    const slowTimer = window.setTimeout(() => {
+      if (state.runId !== currentRunId || !state.analyzing) return;
+      state.analyzingSlow = true;
+      render();
+    }, 12000);
     const roastPromise = (async function () {
       try {
         const apiRun = await runApiRoast(validation.url, state.form.mode, state.form.style);
@@ -1833,8 +1846,10 @@
         sleep(remaining),
       ]);
     } catch (error) {
+      window.clearTimeout(slowTimer);
       if (state.runId !== currentRunId) return;
       state.analyzing = false;
+      state.analyzingSlow = false;
       state.screen = "error";
       state.errorState =
         error && error.type === "ui-error" && error.errorState
@@ -1845,6 +1860,7 @@
     }
     if (state.runId !== currentRunId) return;
 
+    window.clearTimeout(slowTimer);
     state.progress = 100;
     state.completedSteps = ANALYSIS_STEPS.length;
     render();
@@ -1863,6 +1879,7 @@
     state.resultMeta.providerModel = (runOutput && runOutput.providerModel) || "";
     state.screen = "results";
     state.analyzing = false;
+    state.analyzingSlow = false;
     persistCurrentRoastToHistory();
     render();
   }
