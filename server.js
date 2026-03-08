@@ -32,6 +32,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_BASE_URL = String(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
 const OPENAI_PASS1_MODEL = process.env.OPENAI_PASS1_MODEL || "gpt-4o-mini";
 const OPENAI_PASS2_MODEL = process.env.OPENAI_PASS2_MODEL || "gpt-4o-mini";
+const SERVER_VERSION = "compose-inline-20260307c";
 
 const PASS2_SAMPLE_PATH = path.join(__dirname, "fixtures", "pass2-ui.sample.json");
 const PASS1_SCHEMA_PATH = path.join(__dirname, "schemas", "pass1-analysis-contract.json");
@@ -1287,6 +1288,57 @@ async function buildAiPass2Ui({ requestedUrl, mode, style, analysis, fallbackUi 
   return mergedUi;
 }
 
+async function composeUiWithFallback({
+  requestId,
+  roastId,
+  requestedUrl,
+  mode,
+  style,
+  analysis,
+}) {
+  const fallbackUi = buildPass2Ui(analysis, mode);
+  try {
+    requireOpenAiConfigured();
+    const ui = await buildAiPass2Ui({
+      requestedUrl,
+      mode,
+      style,
+      analysis,
+      fallbackUi,
+    });
+    const composeMeta = {
+      provider: "openai",
+      provider_model: OPENAI_PASS2_MODEL,
+      fallback: false,
+    };
+    logServerInfo("compose_success", requestId, {
+      roast_id: roastId || "",
+      pass: "pass2",
+      model: OPENAI_PASS2_MODEL,
+    });
+    return { ui, composeMeta };
+  } catch (error) {
+    logServerError("compose", requestId, error, {
+      roast_id: roastId || "",
+      pass: "pass2",
+      model: OPENAI_PASS2_MODEL,
+    });
+    logServerInfo("compose_fallback", requestId, {
+      roast_id: roastId || "",
+      pass: "pass2",
+      model: OPENAI_PASS2_MODEL,
+    });
+    return {
+      ui: fallbackUi,
+      composeMeta: {
+        provider: "fallback",
+        provider_model: "",
+        fallback: true,
+      },
+    };
+  }
+}
+
 async function handleAnalyze(req, res, requestId) {
   let body;
   try {
@@ -1391,14 +1443,24 @@ async function handleAnalyze(req, res, requestId) {
   }
 
   const timestamp = nowIso();
+  const requestedUrl =
+    analysis && analysis.meta && analysis.meta.source_url ? analysis.meta.source_url : body.url;
+  const composeResult = await composeUiWithFallback({
+    requestId,
+    roastId,
+    requestedUrl,
+    mode,
+    style,
+    analysis,
+  });
   const record = {
     id: roastId,
-    status: "analyzed",
+    status: "ready",
     created_at: timestamp,
     updated_at: timestamp,
     input: { url: body.url, mode, style },
     analysis,
-    ui: null,
+    ui: clone(composeResult.ui),
   };
 
   if (body.persist === true) {
@@ -1411,6 +1473,8 @@ async function handleAnalyze(req, res, requestId) {
     input: record.input,
     analysis: clone(analysis),
     analysis_meta: analysis && analysis.meta ? clone(analysis.meta) : null,
+    ui: clone(composeResult.ui),
+    compose_meta: clone(composeResult.composeMeta),
     request_id: requestId,
     timestamp,
   });
@@ -1477,45 +1541,25 @@ async function handleCompose(req, res, requestId) {
     });
   }
 
-  let ui;
-  const fallbackUi = buildPass2Ui(sourceAnalysis, body.mode);
-  try {
-    requireOpenAiConfigured();
-    ui = await buildAiPass2Ui({
-      requestedUrl:
-        targetRecord && targetRecord.input && targetRecord.input.url
-          ? targetRecord.input.url
-          : sourceAnalysis && sourceAnalysis.meta && sourceAnalysis.meta.source_url
-          ? sourceAnalysis.meta.source_url
-          : "https://example.com",
-      mode: typeof body.mode === "string" ? body.mode : "balanced",
-      style:
-        typeof body.style === "string" && body.style
-          ? body.style
-          : targetRecord && targetRecord.input && targetRecord.input.style
-          ? targetRecord.input.style
-          : "sharp",
-      analysis: sourceAnalysis,
-      fallbackUi,
-    });
-    logServerInfo("compose_success", requestId, {
-      roast_id: typeof body.roast_id === "string" ? body.roast_id : "",
-      pass: "pass2",
-      model: OPENAI_PASS2_MODEL,
-    });
-  } catch (error) {
-    logServerError("compose", requestId, error, {
-      roast_id: typeof body.roast_id === "string" ? body.roast_id : "",
-      pass: "pass2",
-      model: OPENAI_PASS2_MODEL,
-    });
-    logServerInfo("compose_fallback", requestId, {
-      roast_id: typeof body.roast_id === "string" ? body.roast_id : "",
-      pass: "pass2",
-      model: OPENAI_PASS2_MODEL,
-    });
-    ui = fallbackUi;
-  }
+  const composeResult = await composeUiWithFallback({
+    requestId,
+    roastId: typeof body.roast_id === "string" ? body.roast_id : "",
+    requestedUrl:
+      targetRecord && targetRecord.input && targetRecord.input.url
+        ? targetRecord.input.url
+        : sourceAnalysis && sourceAnalysis.meta && sourceAnalysis.meta.source_url
+        ? sourceAnalysis.meta.source_url
+        : "https://example.com",
+    mode: typeof body.mode === "string" ? body.mode : "balanced",
+    style:
+      typeof body.style === "string" && body.style
+        ? body.style
+        : targetRecord && targetRecord.input && targetRecord.input.style
+        ? targetRecord.input.style
+        : "sharp",
+    analysis: sourceAnalysis,
+  });
+  const ui = composeResult.ui;
 
   if (targetRecord) {
     targetRecord.ui = clone(ui);
@@ -1598,6 +1642,7 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, {
         ok: true,
         service: "roast-landingpage-api",
+        version: SERVER_VERSION,
         openai_configured: hasOpenAiConfigured(),
         timestamp: nowIso(),
       });
@@ -1625,7 +1670,7 @@ const server = http.createServer(async (req, res) => {
 
 if (require.main === module) {
   server.listen(PORT, () => {
-    console.log(`Stub API listening on 0.0.0.0:${PORT}`);
+    console.log(`Stub API listening on 0.0.0.0:${PORT} (${SERVER_VERSION})`);
   });
 }
 
