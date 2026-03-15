@@ -1,6 +1,6 @@
 # Context Snapshot (Pause/Resume)
 
-Last updated: 2026-02-26 (UI shell + non-UI deliverables integrated, stub API scaffold + pass2 validation helpers added, frontend wired to stub API in progress)
+Last updated: 2026-03-15 (home/results UI overhaul shipped, mobile polish added, favicon added, smoke coverage added for happy path + fallback + blocked error path)
 
 ## What This Project Is
 `Roast My Landing Page` is a tool where users paste a landing page URL and an AI agent gives a brutal-but-useful conversion roast.
@@ -78,16 +78,14 @@ Why:
 - Roast the page, not the founder
 - Separate desktop vs mobile observations
 
-### Desktop results page section order (locked for v1)
+### Desktop results page section order (current implementation)
 1. Top bar
-2. Header summary card
-3. Top 5 Problems
-4. Category Scores
-5. Quick Wins
-6. Rewrite Pack
-7. Mobile Roast
-8. What’s Working
-9. Footer / Disclaimer
+2. Verdict hero
+3. Warning/fallback banner (when relevant)
+4. Top conversion blockers
+5. Rewrite Pack / Copy Lab
+6. Appendix
+7. Footer / Disclaimer
 
 ## What Exists in the Repo Right Now
 
@@ -126,6 +124,31 @@ There is now a static frontend v1 shell in `app.js` with screen state and a work
 
 The results screen preserves the locked desktop-first layout and renders from the pass2 sample fixture (`fixtures/pass2-ui.sample.json`) with a fallback to embedded fixture data when `fetch()` fails (e.g. `file://` preview).
 
+### Latest shipped UI pass (2026-03-15)
+The frontend was upgraded from a report-like prototype into a more guided product experience.
+
+Home/Input updates:
+- Hero simplified around one promise: paste the page and get the sharpest fix first
+- Reduced visual clutter by replacing the old stat/chip pile with a tighter proof row and output preview
+- Mode/style controls kept, but framed as lighter guidance instead of the main event
+- Added helper copy to explain that roast style changes flavor, not recommendations
+
+Results updates:
+- Old summary card replaced with a verdict hero (`verdict-hero`) that leads with score, diagnosis, and best next move
+- Top issues promoted into tighter spotlight cards with clearer “why it matters / what to change / rewrite” framing
+- Rewrite section reworked into a more tool-like “Copy Lab” with a recommended bundle rail
+- Long-form details moved into an appendix instead of competing with the primary narrative
+- Sidebar now emphasizes “Ship this first” rather than duplicating score-only content
+
+Mobile polish:
+- Reduced topbar clutter on narrow screens
+- Added a sticky mobile action bar for fast access to Copy Lab / top fix
+- Tightened spacing and results hierarchy so the verdict and primary action sit higher in the flow
+
+Supporting assets:
+- Added `favicon.svg`
+- Bumped static asset cache-busting query params in `index.html`
+
 ### Agent A (UI shell flow) status: merged/confirmed
 Confirmed in workspace (`app.js`, `styles.css`):
 - Home/Input screen
@@ -149,16 +172,13 @@ Implementation notes (Agent A decisions):
 - Preserved locked v1 results section order
 
 Implemented results UI sections:
-- Top bar with brand, URL pill, tone badge, action button
-- Header summary card (title, subtitle, score, score band, verdict chip)
-- Top 5 problem cards
-- Category scores table
-- Quick wins
-- Rewrite pack (headline/subheadline/CTA lists) with copy buttons
-- Mobile roast section
-- What’s Working section
+- Top bar with brand, URL pill, tone badge, source/fallback badge, action button
+- Verdict hero (score, diagnosis, verdict chip, strongest next move)
+- Top conversion blocker spotlight cards
+- Rewrite pack / Copy Lab with compare cards and recommended bundle
+- Appendix with quick wins, scores, mobile roast, positives, and full finding breakdown
 - Footer disclaimer + rerun button
-- Sticky right rail (score, top problems, quick actions, section anchors)
+- Sticky right rail focused on the strongest recommended fix
 - Copy-to-clipboard actions + toast feedback
 
 Implemented app-shell behavior:
@@ -170,13 +190,17 @@ Implemented app-shell behavior:
 
 ### Validation / sanity checks already run
 - `node --check app.js` passed
-- Fixture JSON parse check passed (`fixtures/pass2-ui.sample.json`)
-- `pass2-ui` schema JSON parse check passed
-- Basic fixture sanity checks (array sizes, quote length, score sections) passed
-- Agent A shell-flow presence verified in workspace (`renderHome`, `renderAnalyzing`, `renderResults`, fixture fetch path)
+- `node --check server.js` passed
+- `node --check scripts/dev.js` passed
+- `node --check scripts/smoke-ui.js` passed
+- `npm run validate:pass2-fixtures` passed
+- `npm run test:smoke` passed
 
-Note:
-- Local static server preview could not be verified in this environment because the sandbox blocked binding a port.
+### UI smoke coverage now in repo
+`scripts/smoke-ui.js` now provides a lightweight Playwright-based smoke suite that starts the UI server and verifies:
+- Happy path: home -> sample results -> mobile action bar
+- Fallback path: API requests aborted in-browser -> fixture fallback warning + results render
+- Error path: blocked scenario -> blocked error screen + recovery action
 
 ## Git / Source Control Status
 
@@ -1084,3 +1108,200 @@ Run a quick end-to-end manual verification with both processes locally:
 3. Re-run Figma MCP capture into `i2akHZBAHbKNl9sMANavMW` so IG/X/App Store boards include real app visuals.
 4. Export/share final marketing assets from Figma.
 5. Optional cleanup: remove capture script from `index.html` after capture session if no longer needed.
+
+## Resume Update (2026-03-05 18:21 CST): OpenAI billing restored, pass1 confirmed live, pass2 confirmation still pending
+
+### What was confirmed today
+- OpenAI API billing was funded/restored by the user.
+- Render logs now confirm that at least pass1 is using OpenAI successfully.
+- Confirmed log example:
+  - `[analyze_success]`
+  - provider = `openai`
+  - provider_model = `gpt-4o-mini`
+- This means:
+  - the API key is valid
+  - billing/quota is no longer the original blocker
+  - the hosted app is hitting the real AI path at least for analysis/pass1
+
+### What is still unresolved
+- Hosted roast output still feels bland/generic.
+- That means the current problem has shifted from infrastructure/billing to quality:
+  - prompt quality
+  - extraction quality
+  - or pass2 falling back quietly
+- We did **not** yet confirm pass2 success from the deployed Render service.
+
+### Code changes made today
+
+#### 1. Dev-only source visibility was added
+- `server.js` now returns `analysis_meta` from `/analyze`
+- `app.js` stores that in `resultMeta`
+- In local/dev only, the UI can now show:
+  - `AI: gpt-4o-mini`
+  - or `Fixture fallback`
+- This is intentionally hidden in production
+
+#### 2. Explicit success logging was added in backend code
+- `server.js` now logs:
+  - `[analyze_success]`
+  - `[compose_success]`
+- Goal:
+  - stop guessing whether OpenAI was actually used
+  - distinguish successful AI usage from graceful fallback
+
+### Important deployment/debugging state
+- Local repo contains the success-log code.
+- Latest local commit checked:
+  - `93adc0e Add AI success logging and local source indicator`
+- User reported confusion because terminal showed:
+  - `nothing to commit, working tree clean`
+- That was expected because the commit already existed locally.
+- Unclear at pause time whether Render had actually picked up the newest commit containing `compose_success` logging.
+
+### What we learned from logs
+- `analyze_success` was seen in Render logs.
+- `compose_success` was **not** observed yet.
+- That does **not** prove compose/pass2 failed.
+- It likely means one of:
+  1. Render had not yet deployed the latest success-log commit
+  2. compose/pass2 still fell back or failed silently before the new logging was live
+
+### Current likely diagnosis
+- Pass1 is definitely using OpenAI.
+- Pass2 remains unconfirmed from production logs.
+- If the hosted result is still bland, the most likely possibilities are:
+  1. pass2 is still falling back to local composition
+  2. pass2 is using OpenAI, but prompts/output are still too generic
+
+### Current best next step
+1. Confirm Render is actually running commit `93adc0e`
+2. Run one hosted roast again
+3. Check Render logs specifically for:
+   - `analyze_success`
+   - `compose_success`
+4. If both appear:
+   - move directly into prompt/output quality improvement
+5. If only `analyze_success` appears:
+   - debug why pass2 is not succeeding or not logging
+
+### Updated next-step priority order
+1. Confirm Render deploy includes `compose_success` logging
+2. Verify whether pass2 is using OpenAI or falling back
+3. If both AI passes are confirmed, improve prompt/output quality
+4. Continue simplifying the roast/results page
+5. Keep the approved Figma frame as the visual reference baseline
+
+### Practical resume point
+1. Open Render logs
+2. Run one roast from the hosted app
+3. Look for:
+   - `[analyze_success]`
+   - `[compose_success]`
+4. Use that result to decide:
+   - pass2 debugging
+   - or prompt-quality tuning
+
+## Resume Update (2026-03-08 CST): pass2 confirmed, frontend sample fallback bug found, browser-render ingestion added
+
+### What was confirmed today
+- Render logs now confirm the full AI pipeline is running:
+  - `[analyze_success]`
+  - `[compose_begin]`
+  - `[compose_success]`
+- This means:
+  - pass1 is using OpenAI
+  - pass2 is also using OpenAI
+  - the earlier compose ambiguity is resolved
+
+### What was actually causing the repeated bland/sample result
+- The repeated `Polished design, fuzzy pitch` result was **not** a real AI roast.
+- It matched the hardcoded frontend sample payload in `app.js` (`FALLBACK_DATA`).
+- Root cause on the frontend:
+  1. `postJson()` was timing out too quickly for hosted runs
+     - `analyze` timeout had been only `7000ms`
+  2. `getScenarioFromUrl()` treated normal URLs as `"sample"`
+  3. when the client-side request timed out, the UI silently rendered the sample roast
+- Fix applied in `app.js`:
+  - analyze timeout increased to `70000ms`
+  - compose timeout increased to `30000ms`
+  - normal URLs now map to `"normal"`, not `"sample"`
+  - real URLs no longer silently render the canned sample roast
+
+### What was fixed in the analyzing screen
+- The analyzing screen previously looked frozen because it marked all steps as `Done` while the backend was still working.
+- Fix applied in `app.js`:
+  - keep the final step visibly `In progress` while waiting on the backend
+  - show a slow-run message after `12s`:
+    - "This run is taking longer than usual. The hosted backend may be waking up, or the page may be script-heavy."
+
+### What was changed in pass2 behavior
+- Pass2 style tuning alone was not enough to create visible differences.
+- A deterministic style overlay was added in `server.js` so visible copy differs by style even when model output collapses toward the same tone.
+- Fields now explicitly restyled by backend overlay:
+  - `header.title`
+  - `header.subtitle`
+  - `summary_panel.one_liner`
+  - first 3 issue titles
+  - `share_card_copy.quote`
+
+### Browser-rendered ingestion work added
+- The backend previously only fetched raw HTML via `fetch(...)`.
+- That is insufficient for many modern JS-heavy landing pages.
+- A browser-first snapshot path was added in `server.js`:
+  - try Playwright Chromium first
+  - if browser rendering works:
+    - use the rendered DOM HTML
+    - log `page_snapshot` with `source: "browser"`
+  - if browser rendering is unavailable/fails:
+    - fall back to raw HTTP fetch
+    - log `page_snapshot` with `source: "http"`
+- Analysis metadata now records extraction mode:
+  - `analysis.meta.extraction.mode = "browser"` or `"http"`
+
+### Current deployment blocker for rendered-browser ingestion
+- Render logs showed:
+  - `page_snapshot_browser`
+  - missing Chromium executable
+  - then `page_snapshot` with `source: "http"`
+- This means:
+  - Playwright package is installed
+  - Chromium binary is **not** installed in the Render build image
+  - browser-rendered ingestion is currently not active in production yet
+
+### Fix already prepared for Render
+- `render.yaml` was updated so the backend build installs Chromium:
+  - `buildCommand: npm install && npx playwright install chromium`
+- This change was prepared locally and should be pushed/deployed next to activate browser-rendered ingestion on Render.
+
+### Files changed during this phase
+- `app.js`
+- `server.js`
+- `render.yaml`
+- `package.json`
+- `prompts/pass2-system.txt`
+- `prompts/pass2-compose-template.txt`
+- `index.html`
+- `context.md`
+
+### Most important next step for tomorrow
+1. Push/deploy the Render Chromium install change from `render.yaml`
+2. Manual deploy latest commit in Render
+3. Run one roast
+4. Check Render logs for:
+   - no `page_snapshot_browser` missing executable error
+   - `page_snapshot` with `source: "browser"`
+
+### After that
+1. Re-test roast quality on a modern JS-heavy landing page
+2. If quality is still weak, improve extraction/analysis rather than continuing blind prompt tweaks
+3. Then return to UI simplification and screenshot/promo work
+
+### Practical resume point
+1. Confirm `render.yaml` change is pushed:
+   - `buildCommand: npm install && npx playwright install chromium`
+2. Manual deploy latest commit in Render
+3. Run one hosted roast
+4. Inspect logs for:
+   - `page_snapshot_browser` errors
+   - `page_snapshot source:"browser"` vs `source:"http"`
+5. Use that result to decide whether ingestion is finally fixed

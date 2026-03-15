@@ -946,6 +946,57 @@
     `;
   }
 
+  function renderIssueSpotlightCard(issue) {
+    const leadEvidence =
+      issue && issue.evidence && issue.evidence[0] ? issue.evidence[0].value : "";
+    return `
+      <article class="spotlight-card" id="issue-spotlight-${issue.rank}">
+        <div class="spotlight-top">
+          <div class="rank">${issue.rank}</div>
+          <div class="spotlight-title-wrap">
+            <h3>${escapeHtml(issue.title)}</h3>
+            <div class="issue-category">${escapeHtml(issue.category)}</div>
+          </div>
+          <span class="chip ${chipClass(issue.impact_badge)}">${escapeHtml(issue.impact_badge)} Impact</span>
+        </div>
+        <p class="spotlight-problem">${escapeHtml(issue.problem)}</p>
+        <div class="spotlight-columns">
+          <div class="spotlight-block">
+            <label>Why it matters</label>
+            <p>${escapeHtml(issue.why_it_hurts)}</p>
+          </div>
+          <div class="spotlight-block">
+            <label>What to change</label>
+            <p>${escapeHtml(issue.fix)}</p>
+          </div>
+        </div>
+        ${
+          leadEvidence
+            ? `
+          <div class="spotlight-evidence">
+            <span>Seen on page</span>
+            <p>${escapeHtml(leadEvidence)}</p>
+          </div>
+        `
+            : ""
+        }
+        ${
+          issue.example_rewrite
+            ? `
+          <div class="spotlight-rewrite">
+            <div>
+              <label>${escapeHtml(issue.rewrite_label || "Example Rewrite")}</label>
+              <p>${escapeHtml(issue.example_rewrite)}</p>
+            </div>
+            <button class="copy-btn" data-copy="${escapeHtml(issue.example_rewrite)}">Copy</button>
+          </div>
+        `
+            : ""
+        }
+      </article>
+    `;
+  }
+
   function renderScoreRows(items) {
     return items
       .map((row) => {
@@ -1029,12 +1080,12 @@
           <div>Roast My Landing Page</div>
         </div>
         <div class="topbar-right">
-          ${showUrl ? `<div class="url-pill">${escapeHtml(state.form.url)}</div>` : ""}
-          <div class="mode-pill">${escapeHtml(mode.label)}</div>
-          <div class="mode-pill mode-pill-soft">${escapeHtml(style.label)}</div>
+          ${showUrl ? `<div class="url-pill topbar-url">${escapeHtml(state.form.url)}</div>` : ""}
+          <div class="mode-pill topbar-meta-pill">${escapeHtml(mode.label)}</div>
+          <div class="mode-pill mode-pill-soft topbar-meta-pill">${escapeHtml(style.label)}</div>
           ${
             sourceBadge
-              ? `<div class="mode-pill mode-pill-soft" title="${escapeHtml(sourceBadge.title)}">${escapeHtml(
+              ? `<div class="mode-pill mode-pill-soft topbar-source-pill" title="${escapeHtml(sourceBadge.title)}">${escapeHtml(
                   sourceBadge.label
                 )}</div>`
               : ""
@@ -1090,46 +1141,59 @@
         <div class="home-grid">
           <section class="home-hero-card">
             <div class="eyebrow">For designers, founders, and homepage obsessives</div>
-            <h1 class="home-title">Paste the page. Watch it cook.</h1>
+            <h1 class="home-title">Paste the page. Get the sharpest fix first.</h1>
             <p class="home-lede">
-              A playful roast with real signal behind it. We pull apart the headline, next step, message, and trust story fast enough to use mid-iteration.
+              A conversion critique that gets to the point fast: what is muddy, what is costing clarity, and what to rewrite next.
             </p>
 
-            <div class="hero-stat-grid">
+            <div class="hero-proof-row">
+              <div class="hero-proof-pill">Fast verdict</div>
+              <div class="hero-proof-pill">Prioritized fixes</div>
+              <div class="hero-proof-pill">Ready-to-use rewrites</div>
+            </div>
+
+            <div class="hero-stat-grid hero-stat-grid-compact">
               <div class="hero-stat">
-                <div class="hero-stat-label">It finds</div>
-                <div class="hero-stat-value">The vague promise, weak next step, and muddy messaging first</div>
+                <div class="hero-stat-label">Calls out</div>
+                <div class="hero-stat-value">Vague headlines, weak CTAs, thin proof, and muddy differentiation</div>
               </div>
               <div class="hero-stat">
-                <div class="hero-stat-label">It gives</div>
-                <div class="hero-stat-value">Rewrites, quick wins, and a ranked list of what to fix next</div>
+                <div class="hero-stat-label">Hands back</div>
+                <div class="hero-stat-value">A ranked plan, better copy, and the strongest next move to ship first</div>
               </div>
               <div class="hero-stat">
-                <div class="hero-stat-label">Good for</div>
-                <div class="hero-stat-value">Launch pages, portfolio sites, SaaS homepages, and redesigns</div>
-              </div>
-              <div class="hero-stat">
-                <div class="hero-stat-label">The vibe</div>
-                <div class="hero-stat-value">More design crit than corporate audit, with a little heat</div>
+                <div class="hero-stat-label">Best on</div>
+                <div class="hero-stat-value">Launch pages, SaaS homepages, redesigns, and “why is this not converting?” moments</div>
               </div>
             </div>
 
-            <div class="home-preview-strip">
-              <div class="preview-chip">Headline clarity</div>
-              <div class="preview-chip">Next-step strength</div>
-              <div class="preview-chip">Messaging gaps</div>
-              <div class="preview-chip">Rewrite ideas</div>
-              <div class="preview-chip">Mobile friction</div>
-              <div class="preview-chip">What is already working</div>
+            <div class="hero-preview-card">
+              <div class="hero-preview-head">
+                <div>
+                  <div class="hero-preview-label">Example output</div>
+                  <strong>Fix the hero first</strong>
+                </div>
+                <div class="hero-preview-score">56</div>
+              </div>
+              <div class="hero-preview-grid">
+                <div class="hero-preview-block">
+                  <span>Diagnosis</span>
+                  <p>The page looks polished, but the value prop is still making visitors guess.</p>
+                </div>
+                <div class="hero-preview-block">
+                  <span>Rewrite direction</span>
+                  <p>Name the product, the audience, and the outcome in one breath.</p>
+                </div>
+              </div>
             </div>
           </section>
 
           <section class="input-card">
             <div class="input-card-head">
               <div>
-                <div class="eyebrow">Start here</div>
+                <div class="eyebrow">Run a roast</div>
                 <h2>Drop in the URL</h2>
-                <p>Pick the tone. Pick the style. Get the teardown.</p>
+                <p>Choose the tone, run the scan, then jump straight to the fix with the biggest conversion upside.</p>
               </div>
               <div class="input-card-badges">
                 <div class="mode-pill mode-pill-soft">${escapeHtml(mode.hint)}</div>
@@ -1158,7 +1222,10 @@
                   : ""
               }
 
-              <div class="field-label">Roast mode</div>
+              <div class="field-label-row">
+                <div class="field-label">Roast mode</div>
+                <div class="field-caption">Default is tuned to give the clearest, sharpest signal.</div>
+              </div>
               <div class="mode-selector" role="tablist" aria-label="Roast mode">
                 ${MODE_OPTIONS.map((option) => {
                   const active = option.value === state.form.mode;
@@ -1177,7 +1244,10 @@
                 }).join("")}
               </div>
 
-              <div class="field-label">Roast style</div>
+              <div class="field-label-row">
+                <div class="field-label">Roast style</div>
+                <div class="field-caption">Flavor only. The recommendations stay the same.</div>
+              </div>
               <div class="mode-selector" role="tablist" aria-label="Roast style">
                 ${STYLE_OPTIONS.map((option) => {
                   const active = option.value === state.form.style;
@@ -1200,7 +1270,7 @@
             </form>
 
             <div class="fixture-note">
-              <strong>Just exploring?</strong> Load the sample and see the full roast format before running your own page.
+              <strong>Just exploring?</strong> Open a sample report and see the full output before you run your own page.
             </div>
             <div class="sample-results-actions">
               <button class="sample-result-btn" type="button" data-action="view-example-results" data-example-scenario="sample">View sample results</button>
@@ -1373,6 +1443,11 @@
       state.resultMeta && state.resultMeta.roastId
         ? `${API_BASE_URL}/roast/${encodeURIComponent(state.resultMeta.roastId)}`
         : "https://roast.example/r/demo-123";
+    const primaryHeadline = data.rewrite_pack_section.headlines[0] || "";
+    const primarySubheadline = data.rewrite_pack_section.subheadlines[0] || "";
+    const primaryCta = data.rewrite_pack_section.ctas[0] || "";
+    const topIssues = data.issue_cards.slice(0, 3);
+    const overflowIssues = data.issue_cards.slice(3);
 
     const resultWarnings = getResultsWarnings(data);
     return `
@@ -1381,24 +1456,47 @@
           rightHtml: `<button class="primary-btn" data-action="rerun">Roast another page</button>`,
         })}
 
-        <section class="summary-card">
-          <div class="eyebrow">${escapeHtml(data.header.eyebrow)}</div>
-          <div class="summary-header">
-            <div>
+        <section class="summary-card verdict-hero">
+          <div class="eyebrow">Roast verdict</div>
+          <div class="verdict-grid">
+            <div class="verdict-main">
+              <div class="verdict-chip">${escapeHtml(data.header.verdict_chip)}</div>
               <h1>${escapeHtml(data.header.title)}</h1>
-              <p>${escapeHtml(data.header.subtitle)}</p>
+              <p class="verdict-subtitle">${escapeHtml(data.header.subtitle)}</p>
+              <p class="verdict-one-liner">${escapeHtml(data.summary_panel.one_liner)}</p>
+              <div class="verdict-focus-grid">
+                ${data.summary_panel.top_3_problems
+                  .slice(0, 3)
+                  .map(
+                    (item, index) => `
+                      <div class="verdict-focus-card">
+                        <span>${index + 1}</span>
+                        <p>${escapeHtml(item)}</p>
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
             </div>
-            <div class="score-badge">
-              <div class="score-label">${escapeHtml(data.header.score_label)}</div>
-              <div class="score-value">${escapeHtml(String(data.header.score_value))}</div>
-              <div class="score-band">${escapeHtml(data.header.score_band)}</div>
+            <div class="verdict-side">
+              <div class="score-badge score-badge-hero">
+                <div class="score-label">${escapeHtml(data.header.score_label)}</div>
+                <div class="score-value">${escapeHtml(String(data.header.score_value))}</div>
+                <div class="score-band">${escapeHtml(data.header.score_band)}</div>
+              </div>
+              <div class="verdict-next-card">
+                <div class="eyebrow">Best next move</div>
+                <p>${escapeHtml(data.summary_panel.cta_hint)}</p>
+                <div class="verdict-next-actions">
+                  <a class="primary-btn text-btn" href="#${sections.rewrites}">Open Copy Lab</a>
+                  ${
+                    primaryHeadline
+                      ? `<button class="ghost-btn ghost-btn-dark" data-copy="${escapeHtml(primaryHeadline)}">Copy best headline</button>`
+                      : ""
+                  }
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="summary-meta">
-            <div>
-              <p>${escapeHtml(data.summary_panel.one_liner)}</p>
-            </div>
-            <div class="verdict-chip">${escapeHtml(data.header.verdict_chip)}</div>
           </div>
         </section>
 
@@ -1430,69 +1528,88 @@
         <div class="layout">
           <main class="stack">
             <section class="section section-priority" id="${sections.topProblems}">
-              <h2>${escapeHtml(data.summary_panel.top_problems_title)}</h2>
-              <p class="section-subtitle">${escapeHtml(data.summary_panel.cta_hint)}</p>
-              <ol class="problem-headline-list">
-                ${renderProblemHeadlineList(data.summary_panel.top_3_problems)}
-              </ol>
-              <div class="issue-list">
-                ${data.issue_cards.slice(0, 3).map(renderIssueCard).join("")}
+              <div class="section-heading-row">
+                <div>
+                  <h2>${escapeHtml(data.summary_panel.top_problems_title)}</h2>
+                  <p class="section-subtitle">${escapeHtml(data.summary_panel.cta_hint)}</p>
+                </div>
+                <div class="section-heading-note">Start with these before touching the lower-value polish work.</div>
               </div>
-              ${
-                data.issue_cards.length > 3
-                  ? `
-                <details class="detail-panel issue-overflow-panel">
-                  <summary>Additional findings (${data.issue_cards.length - 3})</summary>
-                  <div class="detail-panel-body">
-                    <div class="issue-list">
-                      ${data.issue_cards.slice(3).map(renderIssueCard).join("")}
-                    </div>
-                  </div>
-                </details>
-              `
-                  : ""
-              }
+              <div class="spotlight-grid">
+                ${topIssues.map(renderIssueSpotlightCard).join("")}
+              </div>
             </section>
 
-            <section class="section section-priority" id="${sections.rewrites}">
+            <section class="section section-copy-lab" id="${sections.rewrites}">
               <h2>${escapeHtml(data.rewrite_pack_section.title)}</h2>
-              <div class="rewrite-compare-stack">
-                ${renderRewriteCompareCard(
-                  "Headline",
-                  data.issue_cards[0] && data.issue_cards[0].evidence && data.issue_cards[0].evidence[0]
-                    ? data.issue_cards[0].evidence[0].value
-                    : "",
-                  data.rewrite_pack_section.headlines[0]
-                )}
-                ${renderRewriteCompareCard(
-                  "Support line",
-                  data.header.subtitle || data.summary_panel.one_liner || "",
-                  data.rewrite_pack_section.subheadlines[0]
-                )}
-                ${renderRewriteCompareCard(
-                  "Next step",
-                  data.summary_panel.cta_hint || "",
-                  data.rewrite_pack_section.ctas[0]
-                )}
+              <p class="section-subtitle">Recommended rewrites first, alternate options second.</p>
+              <div class="copy-lab-layout">
+                <div class="rewrite-compare-stack">
+                  ${renderRewriteCompareCard(
+                    "Headline",
+                    data.issue_cards[0] && data.issue_cards[0].evidence && data.issue_cards[0].evidence[0]
+                      ? data.issue_cards[0].evidence[0].value
+                      : "",
+                    primaryHeadline
+                  )}
+                  ${renderRewriteCompareCard(
+                    "Support line",
+                    data.header.subtitle || data.summary_panel.one_liner || "",
+                    primarySubheadline
+                  )}
+                  ${renderRewriteCompareCard(
+                    "Next step",
+                    data.summary_panel.cta_hint || "",
+                    primaryCta
+                  )}
+                </div>
+                <aside class="copy-lab-rail">
+                  <div class="copy-lab-rail-card">
+                    <div class="eyebrow">Recommended bundle</div>
+                    <h3>Ship this version first</h3>
+                    <div class="copy-bundle-list">
+                      ${
+                        primaryHeadline
+                          ? `<button class="bundle-btn" data-copy="${escapeHtml(primaryHeadline)}"><span>Headline</span><strong>${escapeHtml(primaryHeadline)}</strong></button>`
+                          : ""
+                      }
+                      ${
+                        primarySubheadline
+                          ? `<button class="bundle-btn" data-copy="${escapeHtml(primarySubheadline)}"><span>Support line</span><strong>${escapeHtml(primarySubheadline)}</strong></button>`
+                          : ""
+                      }
+                      ${
+                        primaryCta
+                          ? `<button class="bundle-btn" data-copy="${escapeHtml(primaryCta)}"><span>CTA</span><strong>${escapeHtml(primaryCta)}</strong></button>`
+                          : ""
+                      }
+                    </div>
+                  </div>
+                </aside>
               </div>
-              <div class="rewrite-grid">
-                <div class="rewrite-group">
-                  <h3>${escapeHtml(data.rewrite_pack_section.headline_options_label)}</h3>
-                  <div class="option-list">${renderCopyList(data.rewrite_pack_section.headlines)}</div>
+              <details class="detail-panel copy-options-panel">
+                <summary>More rewrite options</summary>
+                <div class="detail-panel-body">
+                  <div class="rewrite-grid">
+                    <div class="rewrite-group">
+                      <h3>${escapeHtml(data.rewrite_pack_section.headline_options_label)}</h3>
+                      <div class="option-list">${renderCopyList(data.rewrite_pack_section.headlines)}</div>
+                    </div>
+                    <div class="rewrite-group">
+                      <h3>${escapeHtml(data.rewrite_pack_section.subheadline_options_label)}</h3>
+                      <div class="option-list">${renderCopyList(data.rewrite_pack_section.subheadlines)}</div>
+                    </div>
+                    <div class="rewrite-group">
+                      <h3>${escapeHtml(data.rewrite_pack_section.cta_options_label)}</h3>
+                      <div class="option-list">${renderCopyList(data.rewrite_pack_section.ctas)}</div>
+                    </div>
+                  </div>
                 </div>
-                <div class="rewrite-group">
-                  <h3>${escapeHtml(data.rewrite_pack_section.subheadline_options_label)}</h3>
-                  <div class="option-list">${renderCopyList(data.rewrite_pack_section.subheadlines)}</div>
-                </div>
-                <div class="rewrite-group">
-                  <h3>${escapeHtml(data.rewrite_pack_section.cta_options_label)}</h3>
-                  <div class="option-list">${renderCopyList(data.rewrite_pack_section.ctas)}</div>
-                </div>
-              </div>
+              </details>
             </section>
 
             <section class="section section-collapsible">
-              <h2 class="section-compact-title">More detail</h2>
+              <h2 class="section-compact-title">Appendix</h2>
               <details class="detail-panel" id="${sections.quickWins}" open>
                 <summary>${escapeHtml(data.quick_wins_section.title)} (${escapeHtml(
                   data.quick_wins_section.subtitle
@@ -1539,6 +1656,16 @@
                   </ul>
                 </div>
               </details>
+
+              <details class="detail-panel issue-overflow-panel">
+                <summary>Full finding breakdown (${data.issue_cards.length})</summary>
+                <div class="detail-panel-body">
+                  <div class="issue-list">
+                    ${topIssues.map(renderIssueCard).join("")}
+                    ${overflowIssues.map(renderIssueCard).join("")}
+                  </div>
+                </div>
+              </details>
             </section>
 
             <section class="section">
@@ -1552,10 +1679,15 @@
           </main>
 
           <aside class="rail" aria-label="Summary sidebar">
-            <section class="rail-card score-card-big">
-              <div class="score-big-label">${escapeHtml(data.header.score_label)}</div>
-              <div class="score-big-value">${escapeHtml(String(data.header.score_value))}</div>
-              <div class="score-band">${escapeHtml(data.header.score_band)}</div>
+            <section class="rail-card ship-card">
+              <div class="eyebrow">Ship this first</div>
+              <h3>${escapeHtml(topIssues[0] ? topIssues[0].title : data.header.verdict_chip)}</h3>
+              <p>${escapeHtml(topIssues[0] ? topIssues[0].fix : data.summary_panel.cta_hint)}</p>
+              ${
+                topIssues[0] && topIssues[0].example_rewrite
+                  ? `<button class="primary-btn rail-primary-btn" data-copy="${escapeHtml(topIssues[0].example_rewrite)}">Copy recommended rewrite</button>`
+                  : `<a class="primary-btn text-btn rail-primary-btn" href="#${sections.rewrites}">Open Copy Lab</a>`
+              }
             </section>
 
             <section class="rail-card">
@@ -1572,6 +1704,17 @@
               </div>
             </section>
           </aside>
+        </div>
+
+        <div class="mobile-action-bar">
+          <a class="primary-btn text-btn mobile-action-primary" href="#${sections.rewrites}">Open Copy Lab</a>
+          ${
+            topIssues[0] && topIssues[0].example_rewrite
+              ? `<button class="ghost-btn mobile-action-secondary" data-copy="${escapeHtml(
+                  topIssues[0].example_rewrite
+                )}">Copy top fix</button>`
+              : ""
+          }
         </div>
       </div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>

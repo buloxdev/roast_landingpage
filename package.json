@@ -9,6 +9,7 @@
     "dev:local-api": "node ./scripts/dev.js --local-api",
     "api:stub": "node server.js",
     "ui:dev": "node ./scripts/dev.js --ui-only",
-    "validate:pass2-fixtures": "node ./scripts/validate-pass2-fixtures.js"
+    "validate:pass2-fixtures": "node ./scripts/validate-pass2-fixtures.js",
+    "test:smoke": "node ./scripts/smoke-ui.js"
   }
 }
