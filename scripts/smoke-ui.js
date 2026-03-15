@@ -77,7 +77,7 @@ async function runHappyPathScenario() {
 
       await page.waitForSelector("h1");
       const heading = await page.locator("h1").textContent();
-      assert(heading && heading.includes("Paste the page"), "Home hero did not render");
+      assert(heading && heading.includes("Paste the link"), "Home hero did not render");
 
       await page.getByRole("button", { name: "View sample results" }).click();
       await page.waitForSelector("text=Polished design, fuzzy pitch");

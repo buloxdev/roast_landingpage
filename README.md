@@ -28,8 +28,12 @@ Implemented in `main`:
 
 ## Repo Structure
 
-- `index.html` / `styles.css` / `app.js`
-  - Frontend app (desktop-first results experience + shell flow)
+- `index.html` / `app.js`
+  - Frontend app shell and screen rendering
+- `tailwind.src.css` / `tailwind.generated.css` / `tailwind.config.js`
+  - Tailwind source, compiled utilities, and theme config
+- `styles.css`
+  - Shared semantic CSS kept alongside Tailwind utilities
 - `server.js`
   - Stub backend API service
 - `render.yaml`
@@ -64,6 +68,7 @@ Then open:
 
 This starts:
 - UI server on `127.0.0.1:8091`
+- Tailwind CSS watcher that rebuilds `tailwind.generated.css`
 - API requests proxied automatically to the live Render backend
 
 Behavior:
@@ -76,6 +81,13 @@ Optional UI-only mode:
 ```bash
 cd roast_landingpage
 npm run ui:dev
+```
+
+One-off CSS build:
+
+```bash
+cd roast_landingpage
+npm run build:css
 ```
 
 Optional local-backend mode:
@@ -123,6 +135,24 @@ Notes:
 - OpenAI is now required for normal roasts
 - if `OPENAI_API_KEY` is missing, the backend will return an AI-backend-not-configured error
 - if the OpenAI call fails, the request fails instead of falling back to heuristics
+
+## Deploy To GitHub Pages
+
+This repo can now deploy its static frontend to GitHub Pages from `main`.
+
+What to do:
+
+1. Push the repo to GitHub.
+2. In GitHub, open `Settings -> Pages`.
+3. Under `Build and deployment`, set `Source` to `GitHub Actions`.
+4. Push to `main` or run the `Deploy GitHub Pages` workflow manually from the Actions tab.
+5. Open the published URL once the workflow finishes.
+
+Important:
+- GitHub Pages only hosts the static frontend, not the Node backend in `server.js`
+- this repo includes a Pages-specific client config in `site-config.js` that points the frontend at `https://roast-landingpage-api.onrender.com`
+- if your backend URL changes, update `site-config.js`
+- custom domains still work, but `site-config.js` currently auto-switches only for `*.github.io`; for a custom domain, set `window.ROAST_API_BASE_URL` there too
 
 ## What Is Finished vs Not Finished
 

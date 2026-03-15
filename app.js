@@ -950,32 +950,34 @@
     const leadEvidence =
       issue && issue.evidence && issue.evidence[0] ? issue.evidence[0].value : "";
     return `
-      <article class="spotlight-card" id="issue-spotlight-${issue.rank}">
-        <div class="spotlight-top">
+      <article class="rounded-[20px] border border-[#e9d5c5] bg-[radial-gradient(circle_at_top_right,rgba(255,95,46,0.08),transparent_34%),linear-gradient(180deg,#fffdfa,#fff7f0)] p-4 shadow-[0_16px_28px_rgba(25,22,20,0.05)]" id="issue-spotlight-${issue.rank}">
+        <div class="grid items-start gap-2.5 sm:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr_auto]">
           <div class="rank">${issue.rank}</div>
-          <div class="spotlight-title-wrap">
-            <h3>${escapeHtml(issue.title)}</h3>
+          <div>
+            <h3 class="m-0 text-[20px] leading-[1.06] tracking-[-0.025em]">${escapeHtml(issue.title)}</h3>
             <div class="issue-category">${escapeHtml(issue.category)}</div>
           </div>
-          <span class="chip ${chipClass(issue.impact_badge)}">${escapeHtml(issue.impact_badge)} Impact</span>
+          <span class="chip ${chipClass(issue.impact_badge)} justify-self-start lg:justify-self-end">${escapeHtml(
+      issue.impact_badge
+    )} Impact</span>
         </div>
-        <p class="spotlight-problem">${escapeHtml(issue.problem)}</p>
-        <div class="spotlight-columns">
-          <div class="spotlight-block">
-            <label>Why it matters</label>
-            <p>${escapeHtml(issue.why_it_hurts)}</p>
+        <p class="mt-3 text-[18px] leading-[1.45]">${escapeHtml(issue.problem)}</p>
+        <div class="mt-3 grid gap-2.5 sm:grid-cols-2">
+          <div class="rounded-[14px] border border-[#efdfd2] bg-white/85 p-3">
+            <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">Why it matters</label>
+            <p class="m-0 leading-[1.48]">${escapeHtml(issue.why_it_hurts)}</p>
           </div>
-          <div class="spotlight-block">
-            <label>What to change</label>
-            <p>${escapeHtml(issue.fix)}</p>
+          <div class="rounded-[14px] border border-[#efdfd2] bg-white/85 p-3">
+            <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">What to change</label>
+            <p class="m-0 leading-[1.48]">${escapeHtml(issue.fix)}</p>
           </div>
         </div>
         ${
           leadEvidence
             ? `
-          <div class="spotlight-evidence">
-            <span>Seen on page</span>
-            <p>${escapeHtml(leadEvidence)}</p>
+          <div class="mt-3 border-t border-dashed border-[#ead5c3] pt-3">
+            <span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">Seen on page</span>
+            <p class="m-0 leading-[1.48]">${escapeHtml(leadEvidence)}</p>
           </div>
         `
             : ""
@@ -983,10 +985,12 @@
         ${
           issue.example_rewrite
             ? `
-          <div class="spotlight-rewrite">
+          <div class="mt-3 flex flex-col gap-3 rounded-[14px] border border-dashed border-[#edbf98] bg-[#fff3e6] p-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <label>${escapeHtml(issue.rewrite_label || "Example Rewrite")}</label>
-              <p>${escapeHtml(issue.example_rewrite)}</p>
+              <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">${escapeHtml(
+                issue.rewrite_label || "Example Rewrite"
+              )}</label>
+              <p class="m-0 leading-[1.48]">${escapeHtml(issue.example_rewrite)}</p>
             </div>
             <button class="copy-btn" data-copy="${escapeHtml(issue.example_rewrite)}">Copy</button>
           </div>
@@ -1002,13 +1006,13 @@
       .map((row) => {
         const pct = Math.max(0, Math.min(100, (Number(row.score) || 0) * 10));
         return `
-          <div class="score-row">
+          <div class="grid items-center gap-2.5 rounded-xl border border-[#e9d0c1] bg-white p-2.5 lg:grid-cols-[minmax(180px,1.2fr)_120px_1fr]">
             <div>
-              <strong>${escapeHtml(row.category)}</strong>
-              <div class="score-note">${escapeHtml(row.note)}</div>
+              <strong class="mb-0.5 block">${escapeHtml(row.category)}</strong>
+              <div class="text-[13px] text-[#776761]">${escapeHtml(row.note)}</div>
             </div>
-            <div class="score-value-inline">${escapeHtml(row.display_score)}</div>
-            <div class="score-bar" aria-hidden="true"><span style="width:${pct}%"></span></div>
+            <div class="font-bold">${escapeHtml(row.display_score)}</div>
+            <div class="h-2 overflow-hidden rounded-full bg-[#eee4d4]" aria-hidden="true"><span class="block h-full bg-[linear-gradient(90deg,#ff5f2e,#f08b47)]" style="width:${pct}%"></span></div>
           </div>
         `;
       })
@@ -1019,8 +1023,8 @@
     return items
       .map(
         (text) => `
-        <div class="option-item">
-          <p>${escapeHtml(text)}</p>
+        <div class="flex flex-col items-start justify-between gap-2.5 rounded-[10px] border border-[#efe4d4] bg-[#fffdf8] p-2.5 sm:flex-row">
+          <p class="m-0 leading-[1.4]">${escapeHtml(text)}</p>
           <button class="copy-btn" data-copy="${escapeHtml(text)}">Copy</button>
         </div>
       `
@@ -1046,20 +1050,22 @@
     if (!afterText) return "";
     const beforeValue = beforeText || "Needs work";
     return `
-      <article class="rewrite-compare-card">
-        <div class="rewrite-compare-head">
-          <div class="rewrite-compare-kicker">Rewrite preview</div>
+      <article class="rounded-[18px] border border-[#e9d0c1] bg-[radial-gradient(circle_at_top_right,rgba(255,95,46,0.1),transparent_36%),linear-gradient(180deg,#fffdfa,#fff7f0)] p-4 shadow-[0_14px_28px_rgba(24,17,25,0.05)]">
+        <div class="mb-1.5 flex items-center justify-between gap-2.5">
+          <div class="text-[11px] uppercase tracking-[0.1em] text-[#776761]">Rewrite preview</div>
           <button class="copy-btn copy-btn-quiet" data-copy="${escapeHtml(afterText)}">Copy upgrade</button>
         </div>
-        <h3>${escapeHtml(label)}</h3>
-        <div class="rewrite-compare-grid">
-          <div class="rewrite-side rewrite-side-before">
-            <span class="rewrite-side-label">Current</span>
-            <p>${escapeHtml(beforeValue)}</p>
+        <h3 class="mb-3 text-[18px] tracking-[-0.02em]">${escapeHtml(label)}</h3>
+        <div class="grid gap-2.5 sm:grid-cols-2">
+          <div class="rounded-2xl border border-[#f2d5ca] bg-[#fff3ee] p-[14px]">
+            <span class="mb-2.5 inline-block text-[10px] font-bold uppercase tracking-[0.11em] text-[#9b5b47]">Current</span>
+            <p class="m-0 text-[15px] leading-[1.5] text-[#8d5c4d] [text-decoration-color:rgba(141,92,77,0.45)] [text-decoration-thickness:1.5px] line-through">${escapeHtml(
+              beforeValue
+            )}</p>
           </div>
-          <div class="rewrite-side rewrite-side-after">
-            <span class="rewrite-side-label">Rewrite</span>
-            <p>${escapeHtml(afterText)}</p>
+          <div class="rounded-2xl border border-[#cfe8de] bg-[#f3fff9] p-[14px]">
+            <span class="mb-2.5 inline-block text-[10px] font-bold uppercase tracking-[0.11em] text-[#16a085]">Rewrite</span>
+            <p class="m-0 text-[15px] font-semibold leading-[1.5] text-[#171119]">${escapeHtml(afterText)}</p>
           </div>
         </div>
       </article>
@@ -1138,74 +1144,79 @@
           rightHtml: `<button class="ghost-btn" type="button" data-action="use-example">Use sample URL</button>`,
         })}
 
-        <div class="home-grid">
-          <section class="home-hero-card">
-            <div class="eyebrow">For designers, founders, and homepage obsessives</div>
-            <h1 class="home-title">Paste the page. Get the sharpest fix first.</h1>
-            <p class="home-lede">
+        <div class="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] xl:items-start">
+          <section class="relative overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,#120d19_0%,#23101a_42%,#421116_100%)] px-5 py-6 text-[#fff4ec] shadow-[0_32px_90px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.05)] sm:px-8 sm:py-9">
+            <div class="pointer-events-none absolute -right-[10%] -bottom-[22%] h-[340px] w-[340px] rounded-full bg-[radial-gradient(circle,rgba(22,160,133,0.32),transparent_72%)]"></div>
+            <div class="pointer-events-none absolute right-[18px] top-[18px] h-28 w-28 rotate-12 rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,248,240,0.16),rgba(255,248,240,0.04))]"></div>
+            <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(255,178,93,0.38),transparent_24%),radial-gradient(circle_at_88%_14%,rgba(255,95,46,0.56),transparent_28%),radial-gradient(circle_at_76%_86%,rgba(22,160,133,0.38),transparent_30%)]"></div>
+            <div class="relative">
+            <div class="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70 sm:text-xs">For designers, founders, and homepage obsessives</div>
+            <h1 class="max-w-[7.5ch] font-display text-[clamp(2.125rem,8vw,4.75rem)] font-black leading-[0.92] tracking-[-0.055em] text-white">Paste the link. Watch it cook.</h1>
+            <p class="mt-3 max-w-[44ch] text-[17px] leading-8 text-white/80 sm:text-[19px]">
               A conversion critique that gets to the point fast: what is muddy, what is costing clarity, and what to rewrite next.
             </p>
 
-            <div class="hero-proof-row">
-              <div class="hero-proof-pill">Fast verdict</div>
-              <div class="hero-proof-pill">Prioritized fixes</div>
-              <div class="hero-proof-pill">Ready-to-use rewrites</div>
+            <div class="mt-5 flex flex-wrap gap-2">
+              <div class="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs tracking-[0.03em] text-white/90">Fast verdict</div>
+              <div class="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs tracking-[0.03em] text-white/90">Prioritized fixes</div>
+              <div class="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs tracking-[0.03em] text-white/90">Ready-to-use rewrites</div>
             </div>
 
-            <div class="hero-stat-grid hero-stat-grid-compact">
-              <div class="hero-stat">
-                <div class="hero-stat-label">Calls out</div>
-                <div class="hero-stat-value">Vague headlines, weak CTAs, thin proof, and muddy differentiation</div>
+            <div class="mt-5 grid gap-3">
+              <div class="rounded-[20px] border border-white/10 bg-white/10 p-4 backdrop-blur-xl">
+                <div class="mb-1 text-[11px] uppercase tracking-[0.08em] text-white/70">Calls out</div>
+                <div class="text-lg font-bold leading-[1.28] text-white">Vague headlines, weak CTAs, thin proof, and muddy differentiation</div>
               </div>
-              <div class="hero-stat">
-                <div class="hero-stat-label">Hands back</div>
-                <div class="hero-stat-value">A ranked plan, better copy, and the strongest next move to ship first</div>
+              <div class="rounded-[20px] border border-white/10 bg-white/10 p-4 backdrop-blur-xl">
+                <div class="mb-1 text-[11px] uppercase tracking-[0.08em] text-white/70">Hands back</div>
+                <div class="text-lg font-bold leading-[1.28] text-white">A ranked plan, better copy, and the strongest next move to ship first</div>
               </div>
-              <div class="hero-stat">
-                <div class="hero-stat-label">Best on</div>
-                <div class="hero-stat-value">Launch pages, SaaS homepages, redesigns, and “why is this not converting?” moments</div>
+              <div class="rounded-[20px] border border-white/10 bg-white/10 p-4 backdrop-blur-xl">
+                <div class="mb-1 text-[11px] uppercase tracking-[0.08em] text-white/70">Best on</div>
+                <div class="text-lg font-bold leading-[1.28] text-white">Launch pages, SaaS homepages, redesigns, and "why is this not converting?" moments</div>
               </div>
             </div>
 
-            <div class="hero-preview-card">
-              <div class="hero-preview-head">
+            <div class="mt-5 rounded-[24px] border border-white/10 bg-white/10 p-4 backdrop-blur-xl">
+              <div class="flex items-center justify-between gap-3">
                 <div>
-                  <div class="hero-preview-label">Example output</div>
-                  <strong>Fix the hero first</strong>
+                  <div class="mb-1 text-[11px] uppercase tracking-[0.09em] text-white/70">Example output</div>
+                  <strong class="block text-[22px] leading-[1.02] tracking-[-0.03em] text-white">Fix the hero first</strong>
                 </div>
-                <div class="hero-preview-score">56</div>
+                <div class="grid h-[68px] w-[68px] place-items-center rounded-[20px] border border-white/15 bg-white/10 text-[28px] font-extrabold text-white">56</div>
               </div>
-              <div class="hero-preview-grid">
-                <div class="hero-preview-block">
-                  <span>Diagnosis</span>
-                  <p>The page looks polished, but the value prop is still making visitors guess.</p>
+              <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                <div class="rounded-[18px] border border-white/10 bg-white/10 p-3">
+                  <span class="mb-1 block text-[11px] uppercase tracking-[0.08em] text-white/70">Diagnosis</span>
+                  <p class="m-0 leading-6 text-white/95">The page looks polished, but the value prop is still making visitors guess.</p>
                 </div>
-                <div class="hero-preview-block">
-                  <span>Rewrite direction</span>
-                  <p>Name the product, the audience, and the outcome in one breath.</p>
+                <div class="rounded-[18px] border border-white/10 bg-white/10 p-3">
+                  <span class="mb-1 block text-[11px] uppercase tracking-[0.08em] text-white/70">Rewrite direction</span>
+                  <p class="m-0 leading-6 text-white/95">Name the product, the audience, and the outcome in one breath.</p>
                 </div>
               </div>
+            </div>
             </div>
           </section>
 
-          <section class="input-card">
-            <div class="input-card-head">
+          <section class="rounded-[28px] border border-[#ffdecd] bg-[linear-gradient(180deg,rgba(255,249,244,0.98),rgba(255,243,233,0.97))] p-5 shadow-[0_28px_76px_rgba(14,8,10,0.2),inset_0_1px_0_rgba(255,255,255,0.4)] sm:p-6">
+            <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <div class="eyebrow">Run a roast</div>
-                <h2>Drop in the URL</h2>
-                <p>Choose the tone, run the scan, then jump straight to the fix with the biggest conversion upside.</p>
+                <div class="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a53d21] sm:text-xs">Run a roast</div>
+                <h2 class="m-0 text-[clamp(1.75rem,2.6vw,2.375rem)] font-black leading-[0.98] tracking-[-0.04em] text-[#171119]">Drop in the URL</h2>
+                <p class="mt-2 max-w-[34ch] text-[15px] leading-7 text-[#776761]">Choose the tone, run the scan, then jump straight to the fix with the biggest conversion upside.</p>
               </div>
-              <div class="input-card-badges">
+              <div class="grid gap-2 sm:justify-items-end">
                 <div class="mode-pill mode-pill-soft">${escapeHtml(mode.hint)}</div>
                 <div class="mode-pill mode-pill-soft">${escapeHtml(style.hint)}</div>
               </div>
             </div>
 
-            <form data-form="roast" class="input-form" novalidate>
-              <label class="field-label" for="landing-url">Landing page URL</label>
+            <form data-form="roast" class="grid gap-3" novalidate>
+              <label class="text-[13px] font-semibold text-[#171119]" for="landing-url">Landing page URL</label>
               <input
                 id="landing-url"
-                class="url-input-field${hasUrlError ? " has-error" : ""}"
+                class="w-full rounded-[18px] border border-[#e9d0c1] bg-[#fffdfa] px-[18px] py-4 text-[#171119] shadow-[inset_0_1px_0_rgba(255,255,255,0.76),0_1px_0_rgba(255,255,255,0.28)] focus:border-[rgba(255,95,46,0.52)] focus:outline-none focus:ring-4 focus:ring-[rgba(255,95,46,0.12)]${hasUrlError ? " border-[rgba(199,63,42,0.55)] bg-[#fff8f7]" : ""}"
                 type="url"
                 name="url"
                 placeholder="https://your-site.com"
@@ -1218,65 +1229,65 @@
               />
               ${
                 hasUrlError
-                  ? `<p id="landing-url-error" class="field-error">${escapeHtml(state.formError)}</p>`
+                  ? `<p id="landing-url-error" class="m-0 text-xs leading-[1.35] text-[#d63b21]">${escapeHtml(state.formError)}</p>`
                   : ""
               }
 
-              <div class="field-label-row">
-                <div class="field-label">Roast mode</div>
-                <div class="field-caption">Default is tuned to give the clearest, sharpest signal.</div>
+              <div class="flex flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+                <div class="text-[13px] font-semibold text-[#171119]">Roast mode</div>
+                <div class="text-xs leading-[1.35] text-[#776761]">Default is tuned to give the clearest, sharpest signal.</div>
               </div>
-              <div class="mode-selector" role="tablist" aria-label="Roast mode">
+              <div class="grid gap-2 lg:grid-cols-3" role="tablist" aria-label="Roast mode">
                 ${MODE_OPTIONS.map((option) => {
                   const active = option.value === state.form.mode;
                   return `
                     <button
                       type="button"
-                      class="mode-option${active ? " is-active" : ""}"
+                      class="rounded-2xl border px-[13px] py-3 text-left transition duration-150 ${active ? "border-[rgba(255,95,46,0.5)] bg-[radial-gradient(circle_at_top_right,rgba(255,95,46,0.12),transparent_45%),linear-gradient(180deg,#fff8f2,#ffefe2)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35),0_14px_24px_rgba(255,95,46,0.12)]" : "border-[#e9d0c1] bg-[linear-gradient(180deg,#fffdfa,#fff5ea)] hover:-translate-y-px hover:border-[rgba(255,95,46,0.36)] hover:shadow-[0_12px_22px_rgba(28,17,22,0.08)]"}"
                       role="tab"
                       aria-selected="${active ? "true" : "false"}"
                       data-mode-value="${escapeHtml(option.value)}"
                     >
-                      <span>${escapeHtml(option.label)}</span>
-                      <small>${escapeHtml(option.hint)}</small>
+                      <span class="block font-bold ${active ? "text-[#8e2d14]" : "text-[#171119]"}">${escapeHtml(option.label)}</span>
+                      <small class="mt-1 block text-[11px] leading-[1.35] text-[#776761]">${escapeHtml(option.hint)}</small>
                     </button>
                   `;
                 }).join("")}
               </div>
 
-              <div class="field-label-row">
-                <div class="field-label">Roast style</div>
-                <div class="field-caption">Flavor only. The recommendations stay the same.</div>
+              <div class="flex flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+                <div class="text-[13px] font-semibold text-[#171119]">Roast style</div>
+                <div class="text-xs leading-[1.35] text-[#776761]">Flavor only. The recommendations stay the same.</div>
               </div>
-              <div class="mode-selector" role="tablist" aria-label="Roast style">
+              <div class="grid gap-2 lg:grid-cols-3" role="tablist" aria-label="Roast style">
                 ${STYLE_OPTIONS.map((option) => {
                   const active = option.value === state.form.style;
                   return `
                     <button
                       type="button"
-                      class="mode-option${active ? " is-active" : ""}"
+                      class="rounded-2xl border px-[13px] py-3 text-left transition duration-150 ${active ? "border-[rgba(255,95,46,0.5)] bg-[radial-gradient(circle_at_top_right,rgba(255,95,46,0.12),transparent_45%),linear-gradient(180deg,#fff8f2,#ffefe2)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35),0_14px_24px_rgba(255,95,46,0.12)]" : "border-[#e9d0c1] bg-[linear-gradient(180deg,#fffdfa,#fff5ea)] hover:-translate-y-px hover:border-[rgba(255,95,46,0.36)] hover:shadow-[0_12px_22px_rgba(28,17,22,0.08)]"}"
                       role="tab"
                       aria-selected="${active ? "true" : "false"}"
                       data-style-value="${escapeHtml(option.value)}"
                     >
-                      <span>${escapeHtml(option.label)}</span>
-                      <small>${escapeHtml(option.hint)}</small>
+                      <span class="block font-bold ${active ? "text-[#8e2d14]" : "text-[#171119]"}">${escapeHtml(option.label)}</span>
+                      <small class="mt-1 block text-[11px] leading-[1.35] text-[#776761]">${escapeHtml(option.hint)}</small>
                     </button>
                   `;
                 }).join("")}
               </div>
 
-              <button class="primary-btn primary-btn-lg" type="submit">Roast My Landing Page</button>
+              <button class="primary-btn primary-btn-lg mt-1" type="submit">Roast My Landing Page</button>
             </form>
 
-            <div class="fixture-note">
+            <div class="mt-[18px] rounded-2xl border border-[#ead6c5] bg-[linear-gradient(180deg,#fff8f1,#f7ece2)] px-4 py-[14px] text-[13px] leading-[1.4] text-[#6e5647]">
               <strong>Just exploring?</strong> Open a sample report and see the full output before you run your own page.
             </div>
-            <div class="sample-results-actions">
-              <button class="sample-result-btn" type="button" data-action="view-example-results" data-example-scenario="sample">View sample results</button>
-              <button class="sample-result-btn" type="button" data-action="view-example-results" data-example-scenario="strong">View strong-page results</button>
-              <button class="sample-result-btn" type="button" data-action="view-example-results" data-example-scenario="mobile">View mobile-issues results</button>
-              <button class="sample-result-btn" type="button" data-action="view-example-results" data-example-scenario="partial">View partial-evidence results</button>
+            <div class="mt-3 grid gap-2">
+              <button class="rounded-xl border border-[#ead7c8] bg-white/85 px-3 py-[11px] text-left font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)]" type="button" data-action="view-example-results" data-example-scenario="sample">View sample results</button>
+              <button class="rounded-xl border border-[#ead7c8] bg-white/85 px-3 py-[11px] text-left font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)]" type="button" data-action="view-example-results" data-example-scenario="strong">View strong-page results</button>
+              <button class="rounded-xl border border-[#ead7c8] bg-white/85 px-3 py-[11px] text-left font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)]" type="button" data-action="view-example-results" data-example-scenario="mobile">View mobile-issues results</button>
+              <button class="rounded-xl border border-[#ead7c8] bg-white/85 px-3 py-[11px] text-left font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)]" type="button" data-action="view-example-results" data-example-scenario="partial">View partial-evidence results</button>
             </div>
 
             ${historyMarkup}
@@ -1306,45 +1317,60 @@
           rightHtml: `<button class="ghost-btn" type="button" data-action="back-home">Cancel</button>`,
         })}
 
-        <section class="analyzing-shell">
-          <div class="analyzing-main">
+        <section class="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+          <div class="rounded-[20px] border border-[#e9d0c1] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,250,242,0.95))] p-4 shadow-shell sm:p-[22px]">
             <div class="eyebrow">Analyzing</div>
-            <h1 class="analyzing-title">Roasting your page...</h1>
-            <p class="analyzing-copy">
+            <h1 class="m-0 text-[clamp(1.625rem,2.6vw,2.375rem)] leading-[1.05] tracking-[-0.02em]">Roasting your page...</h1>
+            <p class="mt-2 text-[#776761] leading-[1.45]">
               We are checking the page, extracting copy, and building your roast.
             </p>
-            <p class="analyzing-copy analyzing-copy-detail">${escapeHtml(detail)}</p>
+            <p class="mt-1 text-[14px] leading-[1.45] text-[#776761]">${escapeHtml(detail)}</p>
 
-            <div class="progress-header">
+            <div class="mb-2 mt-4 flex items-center justify-between gap-3 text-[13px] text-[#776761]">
               <span>Report generation progress</span>
-              <strong>${Math.round(state.progress)}%</strong>
+              <strong class="text-[14px] text-[#171119]">${Math.round(state.progress)}%</strong>
             </div>
             <div
-              class="progress-track"
+              class="h-[10px] overflow-hidden rounded-full border border-[#e4d5c0] bg-[#ecdfcd]"
               role="progressbar"
               aria-valuemin="0"
               aria-valuemax="100"
               aria-valuenow="${Math.round(state.progress)}"
               aria-label="Roast report progress"
             >
-              <div class="progress-fill" style="width: ${Math.round(state.progress)}%"></div>
+              <div class="h-full bg-[linear-gradient(90deg,#ff5f2e,#f08b47)] transition-[width] duration-200" style="width: ${Math.round(
+                state.progress
+              )}%"></div>
             </div>
 
-            <ol class="analysis-steps">
+            <ol class="mt-4 grid list-none gap-2.5 p-0">
               ${ANALYSIS_STEPS.map((step, index) => {
                 const isDone = index < visibleCompletedSteps;
                 const isActive = !isDone && index === visibleCompletedSteps && state.progress < 100;
-                const rowClass = isDone ? "is-done" : isActive ? "is-active" : "is-pending";
                 const statusText = isDone ? "Done" : isActive ? "In progress" : "Waiting";
+                const rowClasses = isDone
+                  ? "border-[#d4dfd8] bg-[linear-gradient(180deg,#f5fbf7,#fff)]"
+                  : isActive
+                  ? "border-[#e2bca9] bg-[linear-gradient(180deg,#fff6ef,#fff)]"
+                  : "border-[#e9d0c1] bg-[rgba(255,255,255,0.75)]";
+                const dotClasses = isDone
+                  ? "border-[#bfd0c6] bg-[#e6f2ea] text-[#16a085]"
+                  : isActive
+                  ? "border-[#efb79f] bg-[#ffe4d8] text-[#8a2f18]"
+                  : "border-[#e9d0c1] bg-[#f7efdf] text-[#171119]";
                 return `
-                  <li class="analysis-step ${rowClass}">
-                    <div class="analysis-step-dot" aria-hidden="true">${isDone ? "OK" : index + 1}</div>
-                    <div class="analysis-step-body">
-                      <div class="analysis-step-title-row">
-                        <strong>${escapeHtml(step.title)}</strong>
-                        <span>${statusText}</span>
+                  <li class="grid gap-2.5 rounded-[14px] border p-2.5 ${rowClasses}">
+                    <div class="grid gap-2.5 sm:grid-cols-[auto_1fr]">
+                      <div class="grid h-7 w-7 shrink-0 place-items-center rounded-[10px] border font-bold ${dotClasses}" aria-hidden="true">${
+                        isDone ? "OK" : index + 1
+                      }</div>
+                      <div class="min-w-0">
+                        <div class="flex flex-col items-start gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-2.5">
+                          <strong class="text-[14px]">${escapeHtml(step.title)}</strong>
+                          <span class="whitespace-nowrap text-[12px] text-[#776761]">${statusText}</span>
+                        </div>
+                        <p class="mt-1 text-[13px] leading-[1.4] text-[#776761]">${escapeHtml(step.detail)}</p>
                       </div>
-                      <p>${escapeHtml(step.detail)}</p>
                     </div>
                   </li>
                 `;
@@ -1352,12 +1378,12 @@
             </ol>
           </div>
 
-          <aside class="analysis-side">
-            <section class="rail-card score-card-big">
-              <div class="score-big-label">Run mode</div>
-              <div class="analysis-side-value">${escapeHtml(getModeMeta(state.form.mode).label)}</div>
-              <div class="score-band">${escapeHtml(getModeMeta(state.form.mode).hint)}</div>
-              <div class="score-band" style="margin-top:6px;">${escapeHtml(getStyleMeta(state.form.style).label)}: ${escapeHtml(
+          <aside class="grid gap-3 lg:sticky lg:top-4">
+            <section class="rounded-[18px] border border-[#e9d0c1] bg-[linear-gradient(180deg,#fff,#fff6ea)] p-[14px]">
+              <div class="text-[12px] text-[#776761]">Run mode</div>
+              <div class="my-1 text-[28px] font-extrabold leading-[1.1]">${escapeHtml(getModeMeta(state.form.mode).label)}</div>
+              <div class="text-[12px] text-[#776761]">${escapeHtml(getModeMeta(state.form.mode).hint)}</div>
+              <div class="mt-1.5 text-[12px] text-[#776761]">${escapeHtml(getStyleMeta(state.form.style).label)}: ${escapeHtml(
       getStyleMeta(state.form.style).hint
     )}</div>
             </section>
@@ -1399,19 +1425,19 @@
           rightHtml: `<button class="ghost-btn" type="button" data-action="back-home">Back</button>`,
         })}
 
-        <section class="error-shell">
-          <div class="error-card">
+        <section class="grid min-h-[min(68vh,720px)] place-items-center">
+          <div class="w-full max-w-[760px] rounded-[20px] border border-[#e9d0c1] bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(255,250,242,0.98))] p-4 shadow-shell sm:p-[22px]">
             <div class="eyebrow">Run Error</div>
-            <h1>${escapeHtml(error.title)}</h1>
-            <p class="error-copy">${escapeHtml(error.message)}</p>
+            <h1 class="m-0 text-[clamp(1.625rem,3vw,2.25rem)] leading-[1.05] tracking-[-0.02em]">${escapeHtml(error.title)}</h1>
+            <p class="mt-2 max-w-[60ch] leading-[1.45] text-[#776761]">${escapeHtml(error.message)}</p>
 
-            <div class="error-meta-row">
+            <div class="mt-[14px] flex flex-wrap items-center gap-2.5">
               <span class="error-chip">${escapeHtml(kindLabel)}</span>
               <span class="error-meta-url">${escapeHtml(state.form.url || "")}</span>
             </div>
-            ${error.helper ? `<p class="error-helper">${escapeHtml(error.helper)}</p>` : ""}
+            ${error.helper ? `<p class="mt-3 text-[13px] leading-[1.4] text-[#6f5849]">${escapeHtml(error.helper)}</p>` : ""}
 
-            <div class="error-actions">
+            <div class="mt-4 flex flex-wrap gap-2.5">
               <button class="primary-btn" type="button" data-action="${escapeHtml(primaryAction)}">${escapeHtml(
       error.primaryLabel || "Retry roast"
     )}</button>
@@ -1456,38 +1482,44 @@
           rightHtml: `<button class="primary-btn" data-action="rerun">Roast another page</button>`,
         })}
 
-        <section class="summary-card verdict-hero">
+        <section class="summary-card bg-[radial-gradient(circle_at_top_right,rgba(255,95,46,0.13),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(22,160,133,0.1),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.95),rgba(255,249,242,0.98))] p-[18px] sm:p-7">
           <div class="eyebrow">Roast verdict</div>
-          <div class="verdict-grid">
-            <div class="verdict-main">
+          <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.85fr)]">
+            <div>
               <div class="verdict-chip">${escapeHtml(data.header.verdict_chip)}</div>
-              <h1>${escapeHtml(data.header.title)}</h1>
-              <p class="verdict-subtitle">${escapeHtml(data.header.subtitle)}</p>
-              <p class="verdict-one-liner">${escapeHtml(data.summary_panel.one_liner)}</p>
-              <div class="verdict-focus-grid">
+              <h1 class="mt-[14px] max-w-[12ch] text-[clamp(1.875rem,7vw,3.375rem)] font-black leading-[0.96] tracking-[-0.045em] sm:max-w-[12ch]">${escapeHtml(
+                data.header.title
+              )}</h1>
+              <p class="m-0 max-w-[60ch] leading-6 text-[#776761]">${escapeHtml(data.header.subtitle)}</p>
+              <p class="mt-[14px] max-w-[48ch] text-[16px] leading-[1.45] text-[#171119] sm:text-[18px]">${escapeHtml(
+                data.summary_panel.one_liner
+              )}</p>
+              <div class="mt-[18px] grid gap-2.5 lg:grid-cols-3">
                 ${data.summary_panel.top_3_problems
                   .slice(0, 3)
                   .map(
                     (item, index) => `
-                      <div class="verdict-focus-card">
-                        <span>${index + 1}</span>
-                        <p>${escapeHtml(item)}</p>
+                      <div class="min-h-full rounded-2xl border border-[#ecd8ca] bg-white/85 p-[14px]">
+                        <span class="mb-2.5 grid h-7 w-7 place-items-center rounded-[10px] border border-[#efc9b6] bg-[#fff0e6] font-bold text-[#9a3a1e]">${
+                          index + 1
+                        }</span>
+                        <p class="m-0 font-bold leading-[1.38]">${escapeHtml(item)}</p>
                       </div>
                     `
                   )
                   .join("")}
               </div>
             </div>
-            <div class="verdict-side">
-              <div class="score-badge score-badge-hero">
+            <div class="grid gap-3">
+              <div class="score-badge rounded-[18px] p-4 shadow-[0_18px_34px_rgba(19,12,18,0.08)]">
                 <div class="score-label">${escapeHtml(data.header.score_label)}</div>
-                <div class="score-value">${escapeHtml(String(data.header.score_value))}</div>
+                <div class="score-value text-[52px]">${escapeHtml(String(data.header.score_value))}</div>
                 <div class="score-band">${escapeHtml(data.header.score_band)}</div>
               </div>
-              <div class="verdict-next-card">
-                <div class="eyebrow">Best next move</div>
-                <p>${escapeHtml(data.summary_panel.cta_hint)}</p>
-                <div class="verdict-next-actions">
+              <div class="rounded-[18px] border border-[#ecd8ca] bg-[rgba(20,14,23,0.94)] p-4 text-[#fff4ec] shadow-[0_16px_30px_rgba(11,8,14,0.22)]">
+                <div class="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/70">Best next move</div>
+                <p class="m-0 leading-6">${escapeHtml(data.summary_panel.cta_hint)}</p>
+                <div class="mt-[14px] grid gap-2.5">
                   <a class="primary-btn text-btn" href="#${sections.rewrites}">Open Copy Lab</a>
                   ${
                     primaryHeadline
@@ -1528,23 +1560,23 @@
         <div class="layout">
           <main class="stack">
             <section class="section section-priority" id="${sections.topProblems}">
-              <div class="section-heading-row">
+              <div class="mb-[14px] flex flex-col items-start gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <div>
                   <h2>${escapeHtml(data.summary_panel.top_problems_title)}</h2>
                   <p class="section-subtitle">${escapeHtml(data.summary_panel.cta_hint)}</p>
                 </div>
-                <div class="section-heading-note">Start with these before touching the lower-value polish work.</div>
+                <div class="max-w-[250px] text-[13px] leading-[1.45] text-[#776761]">Start with these before touching the lower-value polish work.</div>
               </div>
-              <div class="spotlight-grid">
+              <div class="grid gap-[14px]">
                 ${topIssues.map(renderIssueSpotlightCard).join("")}
               </div>
             </section>
 
-            <section class="section section-copy-lab" id="${sections.rewrites}">
+            <section class="section bg-[radial-gradient(circle_at_top_right,rgba(255,95,46,0.08),transparent_36%),rgba(255,255,255,0.8)]" id="${sections.rewrites}">
               <h2>${escapeHtml(data.rewrite_pack_section.title)}</h2>
               <p class="section-subtitle">Recommended rewrites first, alternate options second.</p>
-              <div class="copy-lab-layout">
-                <div class="rewrite-compare-stack">
+              <div class="grid items-start gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(240px,0.8fr)]">
+                <div class="grid gap-[14px]">
                   ${renderRewriteCompareCard(
                     "Headline",
                     data.issue_cards[0] && data.issue_cards[0].evidence && data.issue_cards[0].evidence[0]
@@ -1563,44 +1595,56 @@
                     primaryCta
                   )}
                 </div>
-                <aside class="copy-lab-rail">
-                  <div class="copy-lab-rail-card">
+                <aside class="lg:sticky lg:top-4">
+                  <div class="rounded-[18px] border border-[#ecd7c8] bg-[#fffdfa] p-4 shadow-[0_16px_30px_rgba(22,18,20,0.05)]">
                     <div class="eyebrow">Recommended bundle</div>
-                    <h3>Ship this version first</h3>
-                    <div class="copy-bundle-list">
+                    <h3 class="mb-3 text-[22px] leading-[1.02] tracking-[-0.03em]">Ship this version first</h3>
+                    <div class="grid gap-2.5">
                       ${
                         primaryHeadline
-                          ? `<button class="bundle-btn" data-copy="${escapeHtml(primaryHeadline)}"><span>Headline</span><strong>${escapeHtml(primaryHeadline)}</strong></button>`
+                          ? `<button class="w-full rounded-[14px] border border-[#ead8cb] bg-[linear-gradient(180deg,#fff,#fff6ee)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.3)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
+                              primaryHeadline
+                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">Headline</span><strong class="block leading-[1.4]">${escapeHtml(
+                              primaryHeadline
+                            )}</strong></button>`
                           : ""
                       }
                       ${
                         primarySubheadline
-                          ? `<button class="bundle-btn" data-copy="${escapeHtml(primarySubheadline)}"><span>Support line</span><strong>${escapeHtml(primarySubheadline)}</strong></button>`
+                          ? `<button class="w-full rounded-[14px] border border-[#ead8cb] bg-[linear-gradient(180deg,#fff,#fff6ee)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.3)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
+                              primarySubheadline
+                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">Support line</span><strong class="block leading-[1.4]">${escapeHtml(
+                              primarySubheadline
+                            )}</strong></button>`
                           : ""
                       }
                       ${
                         primaryCta
-                          ? `<button class="bundle-btn" data-copy="${escapeHtml(primaryCta)}"><span>CTA</span><strong>${escapeHtml(primaryCta)}</strong></button>`
+                          ? `<button class="w-full rounded-[14px] border border-[#ead8cb] bg-[linear-gradient(180deg,#fff,#fff6ee)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.3)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
+                              primaryCta
+                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">CTA</span><strong class="block leading-[1.4]">${escapeHtml(
+                              primaryCta
+                            )}</strong></button>`
                           : ""
                       }
                     </div>
                   </div>
                 </aside>
               </div>
-              <details class="detail-panel copy-options-panel">
+              <details class="detail-panel mt-[14px]">
                 <summary>More rewrite options</summary>
                 <div class="detail-panel-body">
-                  <div class="rewrite-grid">
-                    <div class="rewrite-group">
-                      <h3>${escapeHtml(data.rewrite_pack_section.headline_options_label)}</h3>
+                  <div class="grid gap-[14px]">
+                    <div class="rounded-xl border border-[#e9d0c1] bg-white p-3">
+                      <h3 class="mb-2.5 text-sm text-[#776761]">${escapeHtml(data.rewrite_pack_section.headline_options_label)}</h3>
                       <div class="option-list">${renderCopyList(data.rewrite_pack_section.headlines)}</div>
                     </div>
-                    <div class="rewrite-group">
-                      <h3>${escapeHtml(data.rewrite_pack_section.subheadline_options_label)}</h3>
+                    <div class="rounded-xl border border-[#e9d0c1] bg-white p-3">
+                      <h3 class="mb-2.5 text-sm text-[#776761]">${escapeHtml(data.rewrite_pack_section.subheadline_options_label)}</h3>
                       <div class="option-list">${renderCopyList(data.rewrite_pack_section.subheadlines)}</div>
                     </div>
-                    <div class="rewrite-group">
-                      <h3>${escapeHtml(data.rewrite_pack_section.cta_options_label)}</h3>
+                    <div class="rounded-xl border border-[#e9d0c1] bg-white p-3">
+                      <h3 class="mb-2.5 text-sm text-[#776761]">${escapeHtml(data.rewrite_pack_section.cta_options_label)}</h3>
                       <div class="option-list">${renderCopyList(data.rewrite_pack_section.ctas)}</div>
                     </div>
                   </div>
@@ -1608,16 +1652,16 @@
               </details>
             </section>
 
-            <section class="section section-collapsible">
-              <h2 class="section-compact-title">Appendix</h2>
+            <section class="section">
+              <h2 class="mb-2.5 text-base tracking-[0.01em]">Appendix</h2>
               <details class="detail-panel" id="${sections.quickWins}" open>
                 <summary>${escapeHtml(data.quick_wins_section.title)} (${escapeHtml(
                   data.quick_wins_section.subtitle
                 )})</summary>
                 <div class="detail-panel-body">
-                  <ol class="simple-list">
+                  <ol class="m-0 pl-[18px] leading-[1.5]">
                     ${data.quick_wins_section.items
-                      .map((item) => `<li>${escapeHtml(item)}</li>`)
+                      .map((item) => `<li class="[&:not(:first-child)]:mt-2">${escapeHtml(item)}</li>`)
                       .join("")}
                   </ol>
                 </div>
@@ -1635,12 +1679,12 @@
               <details class="detail-panel" id="${sections.mobile}">
                 <summary>${escapeHtml(data.mobile_section.title)}</summary>
                 <div class="detail-panel-body">
-                  <p class="section-subtitle">${escapeHtml(
+                  <p class="mb-[14px] text-sm text-[#776761]">${escapeHtml(
                     data.mobile_section.score_label
                   )}: ${escapeHtml(String(data.mobile_section.score))}/10</p>
-                  <ul class="simple-list">
+                  <ul class="m-0 pl-[18px] leading-[1.5]">
                     ${data.mobile_section.findings
-                      .map((finding) => `<li>${escapeHtml(finding)}</li>`)
+                      .map((finding) => `<li class="[&:not(:first-child)]:mt-2">${escapeHtml(finding)}</li>`)
                       .join("")}
                   </ul>
                 </div>
@@ -1649,9 +1693,9 @@
               <details class="detail-panel" id="${sections.positives}">
                 <summary>${escapeHtml(data.positives_section.title)}</summary>
                 <div class="detail-panel-body">
-                  <ul class="simple-list">
+                  <ul class="m-0 pl-[18px] leading-[1.5]">
                     ${data.positives_section.items
-                      .map((item) => `<li>${escapeHtml(item)}</li>`)
+                      .map((item) => `<li class="[&:not(:first-child)]:mt-2">${escapeHtml(item)}</li>`)
                       .join("")}
                   </ul>
                 </div>
@@ -1669,8 +1713,8 @@
             </section>
 
             <section class="section">
-              <div class="split-row">
-                <p class="footer-note">${escapeHtml(data.footer.disclaimer)}</p>
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <p class="m-0 text-[13px] text-[#776761]">${escapeHtml(data.footer.disclaimer)}</p>
                 <button class="ghost-btn" data-action="rerun">${escapeHtml(
                   data.footer.rerun_cta
                 )}</button>
