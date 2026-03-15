@@ -113,10 +113,10 @@ async function runFallbackScenario() {
       await page.getByRole("button", { name: "Use sample URL" }).click();
       await page.getByRole("button", { name: "Roast My Landing Page" }).click();
 
-      await page.waitForSelector("text=API unavailable - showing local fixture", { timeout: 20000 });
+      await page.waitForSelector("text=Backup roast shown", { timeout: 20000 });
       await page.waitForSelector("text=Top conversion blockers");
 
-      const banner = page.locator("text=API unavailable - showing local fixture");
+      const banner = page.locator("text=Backup roast shown");
       assert(await banner.isVisible(), "Fallback warning banner did not appear");
       assert(
         await page.locator("text=Fixture fallback").first().isVisible(),

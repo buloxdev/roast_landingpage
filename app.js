@@ -273,6 +273,13 @@
       primaryLabel: "Retry roast",
       secondaryLabel: "Try another URL",
     },
+    backupRoast: {
+      title: "Backup roast shown",
+      message:
+        "The live roast engine did not finish this run, so we loaded a backup roast shell instead of dropping you into an error screen.",
+      helper:
+        "Retry once the backend settles if you want a fresh page-specific result.",
+    },
     partialEvidence: {
       title: "Roast generated with limited evidence",
       message:
@@ -451,6 +458,7 @@
   function buildHistoryEntry() {
     const data = state.resultData;
     if (!data || !data.header) return null;
+    if (state.resultMeta && state.resultMeta.apiFallback) return null;
     return {
       url: state.form.url,
       title: data.header.title || "Untitled roast",
@@ -796,7 +804,14 @@
     if (scenario === "redirected") return { errorState: getErrorStateFromTemplate(ERROR_COPY.redirected) };
     if (scenario === "analysis-fail") return { errorState: getErrorStateFromTemplate(ERROR_COPY.analysisFailed) };
     if (scenario === "timeout") return { errorState: getErrorStateFromTemplate(ERROR_COPY.timeout) };
-    if (scenario === "normal") return { errorState: getErrorStateFromTemplate(ERROR_COPY.analysisFailed) };
+    if (scenario === "normal") {
+      const ui = await loadPass2Fixture("sample");
+      const pass2Validation = validatePass2PayloadSafe(ui);
+      if (!pass2Validation.ok) {
+        throw new Error("Fixture payload failed pass2 validation");
+      }
+      return { ui, partialEvidence: false, scenario: "sample" };
+    }
 
     const fixtureKind =
       scenario === "partial"
@@ -848,6 +863,36 @@
     };
   }
 
+  function shouldDegradeToFixture(error) {
+    if (!error || typeof error !== "object") return false;
+    if (error.unavailable || error.retryable) return true;
+
+    const code = String(error.code || "").toUpperCase();
+    return (
+      code === "ANALYSIS_FAILED" ||
+      code === "COMPOSE_FAILED" ||
+      code === "RATE_LIMITED" ||
+      code === "INTERNAL_ERROR" ||
+      code === "API_ERROR"
+    );
+  }
+
+  function getFallbackReasonForError(error) {
+    if (!error || typeof error !== "object") {
+      return "The roast engine did not complete this run, so a backup roast was loaded.";
+    }
+
+    if (error.code === "API_UNAVAILABLE") {
+      return `Could not reach ${API_BASE_URL} (${error.message}). Loaded a backup roast instead.`;
+    }
+
+    if (error.code) {
+      return `The backend returned ${error.code} during ${error.phase || "analysis"}. Loaded a backup roast instead.`;
+    }
+
+    return `The roast engine failed during ${error.phase || "analysis"}. Loaded a backup roast instead.`;
+  }
+
   function getResultsWarnings(data) {
     const warnings = [];
     if (state.resultMeta && state.resultMeta.partialEvidence) {
@@ -872,14 +917,16 @@
       });
     }
 
-    if (shouldShowDevFallbackUi() && state.resultMeta && state.resultMeta.apiFallback) {
+    if (state.resultMeta && state.resultMeta.apiFallback) {
       warnings.push({
         kind: "fallback",
-        title: "API unavailable - showing local fixture",
+        title: ERROR_COPY.backupRoast.title,
         message:
           state.resultMeta.fallbackReason ||
-          "Could not reach the API, so the UI loaded a local fixture result instead.",
-        helper: `Expected API base: ${API_BASE_URL}`,
+          ERROR_COPY.backupRoast.message,
+        helper: shouldShowDevFallbackUi()
+          ? `Expected API base: ${API_BASE_URL}`
+          : ERROR_COPY.backupRoast.helper,
       });
     }
 
@@ -1974,11 +2021,7 @@
         };
       } catch (error) {
         const mappedError = mapApiErrorToErrorState(error);
-        if (mappedError && !error.unavailable) {
-          throw { type: "ui-error", errorState: mappedError };
-        }
-
-        if (!error || !error.unavailable) {
+        if (!shouldDegradeToFixture(error)) {
           throw {
             type: "ui-error",
             errorState: mappedError || getErrorStateFromTemplate(ERROR_COPY.analysisFailed),
@@ -1987,7 +2030,10 @@
 
         const fallback = await runFixtureFallbackForScenario(scenario);
         if (fallback.errorState) {
-          throw { type: "ui-error", errorState: fallback.errorState };
+          throw {
+            type: "ui-error",
+            errorState: mappedError || fallback.errorState,
+          };
         }
 
         return {
@@ -1999,10 +2045,7 @@
           roastId: "",
           provider: "",
           providerModel: "",
-          fallbackReason:
-            error.code === "API_UNAVAILABLE"
-              ? `Could not reach ${API_BASE_URL} (${error.message}).`
-              : `Stub API returned ${error.status || "an error"} during ${error.phase || "analysis"}.`,
+          fallbackReason: getFallbackReasonForError(error),
         };
       }
     })();

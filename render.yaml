@@ -3,6 +3,6 @@ services:
     name: roast-landingpage-api
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && npx playwright install chromium
     startCommand: node server.js
     healthCheckPath: /health

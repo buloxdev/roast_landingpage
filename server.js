@@ -3,6 +3,8 @@ const { URL } = require("url");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const dns = require("dns").promises;
+const net = require("net");
 
 function loadEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -32,8 +34,24 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_BASE_URL = String(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
 const OPENAI_PASS1_MODEL = process.env.OPENAI_PASS1_MODEL || "gpt-4o-mini";
 const OPENAI_PASS2_MODEL = process.env.OPENAI_PASS2_MODEL || "gpt-4o-mini";
+const OPENAI_TIMEOUT_MS = Math.max(
+  5000,
+  parsePositiveInteger(process.env.OPENAI_TIMEOUT_MS, 25000)
+);
+const API_ACCESS_TOKEN = process.env.API_ACCESS_TOKEN || "";
+const CORS_ALLOWED_ORIGINS = String(process.env.CORS_ALLOWED_ORIGINS || "*")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+const RATE_LIMIT_WINDOW_MS = Math.max(
+  1000,
+  parsePositiveInteger(process.env.RATE_LIMIT_WINDOW_MS, 60000)
+);
+const RATE_LIMIT_MAX_ANALYZE = parsePositiveInteger(process.env.RATE_LIMIT_MAX_ANALYZE, 30);
+const RATE_LIMIT_MAX_COMPOSE = parsePositiveInteger(process.env.RATE_LIMIT_MAX_COMPOSE, 60);
 const SERVER_VERSION = "compose-inline-20260307c";
 let sharedBrowserPromise = null;
+const requestRateMap = new Map();
 
 const PASS2_SAMPLE_PATH = path.join(__dirname, "fixtures", "pass2-ui.sample.json");
 const PASS1_SCHEMA_PATH = path.join(__dirname, "schemas", "pass1-analysis-contract.json");
@@ -157,6 +175,186 @@ function makeRequestId() {
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function parsePositiveInteger(input, fallback) {
+  const parsed = Number(input);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function getClientIp(req) {
+  const forwarded = req.headers && req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.trim()) {
+    return forwarded.split(",")[0].trim();
+  }
+
+  const remoteAddress = req.socket && req.socket.remoteAddress ? req.socket.remoteAddress : "127.0.0.1";
+  if (remoteAddress.startsWith("::ffff:")) {
+    return remoteAddress.slice(7);
+  }
+  return remoteAddress;
+}
+
+function buildCorsOrigin(origin) {
+  if (!origin) return CORS_ALLOWED_ORIGINS.includes("*") ? "*" : "";
+  if (CORS_ALLOWED_ORIGINS.includes("*")) return "*";
+  return CORS_ALLOWED_ORIGINS.includes(origin) ? origin : "";
+}
+
+function buildCorsHeaders(req) {
+  const allowedOrigin = buildCorsOrigin(req && req.headers ? req.headers.origin : null);
+  if (!allowedOrigin) {
+    return {};
+  }
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    Vary: "Origin",
+    ...(allowedOrigin === "*" ? {} : { "Access-Control-Allow-Credentials": "true" }),
+  };
+}
+
+function applyCorsHeaders(res, req) {
+  const corsHeaders = buildCorsHeaders(req);
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    res.setHeader(key, value);
+  }
+}
+
+function rateLimitAllowed(req, action, maxRequests) {
+  const ip = getClientIp(req);
+  const key = `${action}:${ip}`;
+  const now = Date.now();
+
+  if (requestRateMap.size > 1000) {
+    for (const [mapKey, bucket] of requestRateMap) {
+      if (now - bucket.windowStart > RATE_LIMIT_WINDOW_MS * 2) {
+        requestRateMap.delete(mapKey);
+      }
+    }
+  }
+
+  const bucket = requestRateMap.get(key) || { count: 0, windowStart: now };
+  if (now - bucket.windowStart > RATE_LIMIT_WINDOW_MS) {
+    bucket.count = 0;
+    bucket.windowStart = now;
+  }
+  bucket.count += 1;
+  requestRateMap.set(key, bucket);
+
+  const retryAfterSeconds = Math.max(
+    1,
+    Math.ceil((bucket.windowStart + RATE_LIMIT_WINDOW_MS - now) / 1000)
+  );
+  return {
+    allowed: bucket.count <= maxRequests,
+    remaining: Math.max(0, maxRequests - bucket.count),
+    retryAfter: retryAfterSeconds,
+  };
+}
+
+function isRequestAuthorized(req) {
+  if (!API_ACCESS_TOKEN) return true;
+
+  const header = req.headers.authorization;
+  const match = typeof header === "string" ? header.match(/^Bearer\s+(.+)$/i) : null;
+  const token = match && match[1] ? match[1].trim() : req.headers["x-api-token"];
+  if (!token) return false;
+
+  const expected = Buffer.from(String(API_ACCESS_TOKEN), "utf8");
+  const actual = Buffer.from(String(token), "utf8");
+  if (expected.length !== actual.length) return false;
+
+  return crypto.timingSafeEqual(expected, actual);
+}
+
+function hasDisallowedHostname(hostname) {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "localhost" ||
+    normalized === "::1" ||
+    normalized.endsWith(".local") ||
+    normalized.endsWith(".localhost") ||
+    normalized.endsWith(".internal") ||
+    normalized.endsWith(".test") ||
+    normalized.endsWith(".invalid") ||
+    normalized.endsWith(".example") ||
+    normalized.endsWith(".example.com")
+  );
+}
+
+function hasDisallowedIp(address) {
+  const version = net.isIP(address);
+  if (!version) return true;
+
+  if (version === 4) {
+    const octets = address.split(".").map(Number);
+    if (!octets.every((part) => Number.isFinite(part))) return true;
+    const [a, b] = octets;
+    if (a === 0) return true;
+    if (a === 10) return true;
+    if (a === 127) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true;
+    if (a >= 224) return true;
+    return false;
+  }
+
+  const normalized = address.toLowerCase();
+  if (normalized === "::" || normalized === "::0" || normalized === "::1") return true;
+  if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
+  if (normalized.startsWith("fe80")) return true;
+  if (normalized.startsWith("ff")) return true;
+  if (normalized.includes(".") || normalized.includes("/")) return true;
+  return false;
+}
+
+async function validatePublicHttpUrl(rawUrl) {
+  if (!isValidHttpUrl(rawUrl)) {
+    return { ok: false, reason: "Must be a valid http(s) URL." };
+  }
+
+  const parsed = new URL(rawUrl);
+  if (parsed.username || parsed.password) {
+    return { ok: false, reason: "URL credentials are not allowed." };
+  }
+
+  if (hasDisallowedHostname(parsed.hostname)) {
+    return { ok: false, reason: "URL hostname is not allowed." };
+  }
+
+  const ipFromHostname = net.isIP(parsed.hostname);
+  if (ipFromHostname) {
+    return hasDisallowedIp(parsed.hostname)
+      ? { ok: false, reason: "URL resolves to a restricted IP." }
+      : { ok: true, normalizedHost: parsed.hostname };
+  }
+
+  try {
+    const resolved = await dns.lookup(parsed.hostname, { all: true });
+    if (!resolved.length) {
+      return { ok: false, reason: "URL hostname could not be resolved." };
+    }
+
+    for (const result of resolved) {
+      if (hasDisallowedIp(result.address)) {
+        return {
+          ok: false,
+          reason: `URL resolves to restricted destination ${result.address}`,
+        };
+      }
+    }
+
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: error && error.code ? `DNS lookup failed: ${error.code}` : "DNS lookup failed.",
+    };
+  }
 }
 
 function isPlainObject(value) {
@@ -326,6 +524,10 @@ function renderTemplate(template, replacements) {
   });
 }
 
+function getDurationMs(startedAt) {
+  return Math.max(0, Date.now() - startedAt);
+}
+
 function getPlaywrightChromium() {
   try {
     return require("playwright").chromium;
@@ -372,22 +574,37 @@ function extractMessageContent(message) {
 }
 
 async function callOpenAiJson({ model, systemPrompt, userPrompt, responseFormat, temperature = 0.3 }) {
-  const response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model,
-      temperature,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: responseFormat,
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+  let response;
+  try {
+    response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model,
+        temperature,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: responseFormat,
+      }),
+    });
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      const timeoutError = new Error(`OpenAI request timed out after ${OPENAI_TIMEOUT_MS}ms`);
+      timeoutError.code = "OPENAI_TIMEOUT";
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -415,19 +632,50 @@ async function callOpenAiJson({ model, systemPrompt, userPrompt, responseFormat,
   return JSON.parse(rawContent);
 }
 
-function sendJson(res, statusCode, body) {
-  const payload = JSON.stringify(body);
-  res.writeHead(statusCode, {
-    "Content-Type": "application/json; charset=utf-8",
-    "Content-Length": Buffer.byteLength(payload),
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  });
-  res.end(payload);
+function canWriteResponse(res) {
+  return res && !res.writableEnded && !res.writableFinished;
 }
 
-function sendError(res, statusCode, requestId, code, message, options = {}) {
+function sendJson(res, statusCode, body, req = null) {
+  if (!canWriteResponse(res) || res.__roastResponseSent) {
+    return;
+  }
+
+  const payload = JSON.stringify(body);
+  res.__roastResponseSent = true;
+
+  if (!res.headersSent) {
+    const headers = {
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Length": Buffer.byteLength(payload),
+      ...buildCorsHeaders(req),
+    };
+    res.writeHead(statusCode, {
+      ...headers,
+    });
+  } else {
+    applyCorsHeaders(res, req);
+  }
+  try {
+    res.end(payload);
+  } catch {
+    // Ignore late writes if headers/body were already sent by another branch.
+  }
+}
+
+function sendError(res, statusCode, requestId, code, message, options = {}, req = null) {
+  if (!canWriteResponse(res)) {
+    return;
+  }
+
+  if (options.retryAfterSeconds != null) {
+    res.setHeader("Retry-After", String(options.retryAfterSeconds));
+  }
+
+  if (options.authFailed) {
+    res.setHeader("WWW-Authenticate", 'Bearer realm="API"');
+  }
+
   const body = {
     error: {
       code,
@@ -438,7 +686,7 @@ function sendError(res, statusCode, requestId, code, message, options = {}) {
     request_id: requestId,
     timestamp: nowIso(),
   };
-  sendJson(res, statusCode, body);
+  sendJson(res, statusCode, body, req);
 }
 
 function logServerError(scope, requestId, error, extra = {}) {
@@ -623,6 +871,18 @@ async function fetchPageSnapshotViaHttp(pageUrl) {
     }
 
     const finalUrl = response.url || pageUrl;
+    if (!isValidHttpUrl(finalUrl)) {
+      return { ok: false, status: 403, code: "SSRF_BLOCKED", reason: "Final URL is invalid." };
+    }
+    const finalValidation = await validatePublicHttpUrl(finalUrl);
+    if (!finalValidation.ok) {
+      return {
+        ok: false,
+        status: 403,
+        code: "SSRF_BLOCKED",
+        reason: `Final URL blocked: ${finalValidation.reason}`,
+      };
+    }
     if (getScenarioFromUrl(finalUrl) === "redirected") {
       return { ok: false, status: 422, code: "FETCH_FAILED", reason: "Redirected to app/dashboard page instead of marketing page" };
     }
@@ -698,6 +958,18 @@ async function fetchPageSnapshotViaBrowser(pageUrl) {
     }
 
     const finalUrl = page.url() || pageUrl;
+    if (!isValidHttpUrl(finalUrl)) {
+      return { ok: false, status: 403, code: "SSRF_BLOCKED", reason: "Final URL is invalid." };
+    }
+    const finalValidation = await validatePublicHttpUrl(finalUrl);
+    if (!finalValidation.ok) {
+      return {
+        ok: false,
+        status: 403,
+        code: "SSRF_BLOCKED",
+        reason: `Final URL blocked: ${finalValidation.reason}`,
+      };
+    }
     if (getScenarioFromUrl(finalUrl) === "redirected") {
       return {
         ok: false,
@@ -1532,8 +1804,17 @@ function buildPass2Ui(analysis, mode) {
   return ui;
 }
 
-async function buildAiPass1Analysis({ requestedUrl, mode, extraction, fallbackAnalysis }) {
+async function buildAiPass1Analysis({ requestedUrl, mode, extraction, fallbackAnalysis, requestId }) {
   const prompt = renderTemplate(pass1Template, buildPromptEvidence(extraction, requestedUrl, mode));
+  if (requestId) {
+    logServerInfo("pass1_begin", requestId, {
+      model: OPENAI_PASS1_MODEL,
+      prompt_chars: prompt.length,
+      visible_text_chars: extraction && extraction.visibleText ? extraction.visibleText.length : 0,
+      paragraph_count: extraction && Array.isArray(extraction.paragraphs) ? extraction.paragraphs.length : 0,
+      cta_count: extraction && Array.isArray(extraction.ctas) ? extraction.ctas.length : 0,
+    });
+  }
   const raw = await callOpenAiJson({
     model: OPENAI_PASS1_MODEL,
     systemPrompt: pass1SystemPrompt,
@@ -1552,7 +1833,7 @@ async function buildAiPass1Analysis({ requestedUrl, mode, extraction, fallbackAn
   });
 }
 
-async function buildAiPass2Ui({ requestedUrl, mode, style, analysis, fallbackUi }) {
+async function buildAiPass2Ui({ requestedUrl, mode, style, analysis, fallbackUi, requestId }) {
   const roastModeLabel =
     mode === "fix-first" ? "Fix-First" : mode === "balanced" ? "Balanced" : "Brutal";
   const prompt = renderTemplate(pass2Template, {
@@ -1562,6 +1843,15 @@ async function buildAiPass2Ui({ requestedUrl, mode, style, analysis, fallbackUi 
     roast_style_examples: getRoastStyleFewShot(style),
     pass1_analysis_json: asJsonString(analysis),
   });
+  if (requestId) {
+    logServerInfo("pass2_begin", requestId, {
+      model: OPENAI_PASS2_MODEL,
+      style,
+      prompt_chars: prompt.length,
+      analysis_chars: asJsonString(analysis).length,
+      issue_count: analysis && Array.isArray(analysis.issues) ? analysis.issues.length : 0,
+    });
+  }
 
   const raw = await callOpenAiJson({
     model: OPENAI_PASS2_MODEL,
@@ -1617,6 +1907,7 @@ async function composeUiWithFallback({
     fallbackUi = clone(pass2Sample);
   }
 
+  const composeStartedAt = Date.now();
   try {
     requireOpenAiConfigured();
     const ui = await buildAiPass2Ui({
@@ -1625,6 +1916,7 @@ async function composeUiWithFallback({
       style,
       analysis,
       fallbackUi,
+      requestId,
     });
     const composeMeta = {
       provider: "openai",
@@ -1635,6 +1927,7 @@ async function composeUiWithFallback({
       roast_id: roastId || "",
       pass: "pass2",
       model: OPENAI_PASS2_MODEL,
+      duration_ms: getDurationMs(composeStartedAt),
     });
     return { ui, composeMeta };
   } catch (error) {
@@ -1642,6 +1935,7 @@ async function composeUiWithFallback({
       roast_id: roastId || "",
       pass: "pass2",
       model: OPENAI_PASS2_MODEL,
+      duration_ms: typeof composeStartedAt === "number" ? getDurationMs(composeStartedAt) : 0,
     });
     logServerInfo("compose_fallback", requestId, {
       roast_id: roastId || "",
@@ -1660,58 +1954,135 @@ async function composeUiWithFallback({
 }
 
 async function handleAnalyze(req, res, requestId) {
+  if (!isRequestAuthorized(req)) {
+    return sendError(
+      res,
+      401,
+      requestId,
+      "UNAUTHORIZED",
+      "Missing or invalid API token.",
+      { authFailed: true, retryable: false },
+      req
+    );
+  }
+
+  const rateLimit = rateLimitAllowed(req, "analyze", RATE_LIMIT_MAX_ANALYZE);
+  if (!rateLimit.allowed) {
+    return sendError(
+      res,
+      429,
+      requestId,
+      "RATE_LIMITED",
+      "Too many requests. Please retry later.",
+      { details: [{ field: "request", reason: "Rate limit exceeded for this client" }], retryAfterSeconds: rateLimit.retryAfter, retryable: false },
+      req
+    );
+  }
+
   let body;
   try {
     body = await readJsonBody(req);
   } catch (error) {
-    return sendError(res, 400, requestId, "INVALID_REQUEST", "Request body failed validation.", {
-      details: [{ field: "body", reason: error.message.includes("JSON") ? "Malformed JSON" : error.message }],
-      retryable: false,
-    });
+    return sendError(
+      res,
+      400,
+      requestId,
+      "INVALID_REQUEST",
+      "Request body failed validation.",
+      { details: [{ field: "body", reason: error.message.includes("JSON") ? "Malformed JSON" : error.message }], retryable: false },
+      req
+    );
   }
 
   if (!isValidHttpUrl(body.url)) {
-    return sendError(res, 422, requestId, "INVALID_REQUEST", "Request body failed validation.", {
-      details: [{ field: "url", reason: "Must be a valid http(s) URL (max 2048 chars)" }],
-      retryable: false,
-    });
+    return sendError(
+      res,
+      422,
+      requestId,
+      "INVALID_REQUEST",
+      "Request body failed validation.",
+      { details: [{ field: "url", reason: "Must be a valid http(s) URL (max 2048 chars)" }], retryable: false },
+      req
+    );
   }
 
   const scenario = getScenarioFromUrl(body.url);
+  if (scenario !== "sample" && scenario !== "strong" && scenario !== "mobile" && scenario !== "partial") {
+    const targetValidation = await validatePublicHttpUrl(body.url);
+    if (!targetValidation.ok) {
+      return sendError(
+        res,
+        422,
+        requestId,
+        "SSRF_BLOCKED",
+        "Request body failed validation.",
+        { details: [{ field: "url", reason: targetValidation.reason }], retryable: false },
+        req
+      );
+    }
+  }
+
   if (scenario === "blocked") {
-    return sendError(res, 422, requestId, "PAGE_BLOCKED", "The page could not be accessed.", {
-      details: [{ field: "url", reason: "Page appears behind login, bot protection, or permission gate" }],
-      retryable: false,
-    });
+    return sendError(
+      res,
+      422,
+      requestId,
+      "PAGE_BLOCKED",
+      "The page could not be accessed.",
+      { details: [{ field: "url", reason: "Page appears behind login, bot protection, or permission gate" }], retryable: false },
+      req
+    );
   }
   if (scenario === "timeout") {
-    return sendError(res, 503, requestId, "FETCH_FAILED", "The page took too long to load.", {
-      details: [{ field: "url", reason: "Page fetch/capture timed out" }],
-      retryable: true,
-    });
+    return sendError(
+      res,
+      503,
+      requestId,
+      "FETCH_FAILED",
+      "The page took too long to load.",
+      { details: [{ field: "url", reason: "Page fetch/capture timed out" }], retryable: true },
+      req
+    );
   }
   if (scenario === "redirected") {
-    return sendError(res, 422, requestId, "FETCH_FAILED", "URL redirected away from a landing page.", {
-      details: [{ field: "url", reason: "Redirected to app/dashboard page instead of marketing page" }],
-      retryable: false,
-    });
+    return sendError(
+      res,
+      422,
+      requestId,
+      "FETCH_FAILED",
+      "URL redirected away from a landing page.",
+      { details: [{ field: "url", reason: "Redirected to app/dashboard page instead of marketing page" }], retryable: false },
+      req
+    );
   }
   if (scenario === "analysis-fail") {
-    return sendError(res, 422, requestId, "ANALYSIS_FAILED", "The page loaded but analysis did not complete.", {
-      details: [{ field: "analysis", reason: "Pass-1 model/output generation failed" }],
-      retryable: true,
-    });
+    return sendError(
+      res,
+      422,
+      requestId,
+      "ANALYSIS_FAILED",
+      "The page loaded but analysis did not complete.",
+      { details: [{ field: "analysis", reason: "Pass-1 model/output generation failed" }], retryable: true },
+      req
+    );
   }
   if (scenario === "rate-limit") {
-    return sendError(res, 429, requestId, "RATE_LIMITED", "Too many requests. Please retry later.", {
-      details: [{ field: "request", reason: "Rate limit exceeded for this client" }],
-      retryable: true,
-    });
+    return sendError(
+      res,
+      429,
+      requestId,
+      "RATE_LIMITED",
+      "Too many requests. Please retry later.",
+      { details: [{ field: "request", reason: "Rate limit exceeded for this client" }], retryable: true },
+      req
+    );
   }
 
   const mode = typeof body.mode === "string" && body.mode.trim() ? body.mode.trim() : "balanced";
   const style = typeof body.style === "string" && body.style.trim() ? body.style.trim() : "sharp";
   const roastId = makeId("roast");
+  const analyzeStartedAt = Date.now();
+  const snapshotStartedAt = Date.now();
   const snapshot = await fetchPageSnapshot(body.url, requestId);
   if (!snapshot.ok) {
     return sendError(
@@ -1720,17 +2091,22 @@ async function handleAnalyze(req, res, requestId) {
       requestId,
       snapshot.code || "FETCH_FAILED",
       snapshot.code === "PAGE_BLOCKED" ? "The page could not be accessed." : "The page could not be analyzed.",
-      {
-        details: [{ field: "url", reason: snapshot.reason || "Page fetch failed" }],
-        retryable: Boolean(snapshot.retryable),
-      }
+      { details: [{ field: "url", reason: snapshot.reason || "Page fetch failed" }], retryable: Boolean(snapshot.retryable) },
+      req
     );
   }
+  logServerInfo("analyze_fetch_complete", requestId, {
+    url: body.url,
+    final_url: snapshot.finalUrl || body.url,
+    rendered: Boolean(snapshot.rendered),
+    duration_ms: getDurationMs(snapshotStartedAt),
+  });
 
   let analysis;
   const extraction = buildExtraction(snapshot.html, snapshot.finalUrl);
   extraction.rendered = Boolean(snapshot.rendered);
   const fallbackAnalysis = buildRealAnalysis({ url: body.url, mode, extraction });
+  const pass1StartedAt = Date.now();
   try {
     requireOpenAiConfigured();
     analysis = await buildAiPass1Analysis({
@@ -1738,6 +2114,7 @@ async function handleAnalyze(req, res, requestId) {
       mode,
       extraction,
       fallbackAnalysis,
+      requestId,
     });
     logServerInfo("analyze_success", requestId, {
       url: body.url,
@@ -1751,6 +2128,7 @@ async function handleAnalyze(req, res, requestId) {
         analysis && analysis.meta && analysis.meta.provider_model
           ? analysis.meta.provider_model
           : "",
+      duration_ms: getDurationMs(pass1StartedAt),
     });
   } catch (error) {
     logServerError("analyze", requestId, error, {
@@ -1759,6 +2137,7 @@ async function handleAnalyze(req, res, requestId) {
       style,
       pass: "pass1",
       model: OPENAI_PASS1_MODEL,
+      duration_ms: getDurationMs(pass1StartedAt),
     });
     analysis = fallbackAnalysis;
   }
@@ -1788,6 +2167,20 @@ async function handleAnalyze(req, res, requestId) {
     roastStore.set(roastId, record);
   }
 
+  logServerInfo("analyze_complete", requestId, {
+    url: body.url,
+    roast_id: roastId,
+    duration_ms: getDurationMs(analyzeStartedAt),
+    provider:
+      analysis && analysis.meta && analysis.meta.provider ? analysis.meta.provider : "fallback",
+    provider_model:
+      analysis && analysis.meta && analysis.meta.provider_model ? analysis.meta.provider_model : "",
+    compose_provider:
+      composeResult && composeResult.composeMeta && composeResult.composeMeta.provider
+        ? composeResult.composeMeta.provider
+        : "fallback",
+  });
+
   return sendJson(res, 200, {
     roast_id: roastId,
     status: "analyzed",
@@ -1798,25 +2191,60 @@ async function handleAnalyze(req, res, requestId) {
     compose_meta: clone(composeResult.composeMeta),
     request_id: requestId,
     timestamp,
-  });
+  }, req);
 }
 
 async function handleCompose(req, res, requestId) {
+  if (!isRequestAuthorized(req)) {
+    return sendError(
+      res,
+      401,
+      requestId,
+      "UNAUTHORIZED",
+      "Missing or invalid API token.",
+      { authFailed: true, retryable: false },
+      req
+    );
+  }
+
+  const rateLimit = rateLimitAllowed(req, "compose", RATE_LIMIT_MAX_COMPOSE);
+  if (!rateLimit.allowed) {
+    return sendError(
+      res,
+      429,
+      requestId,
+      "RATE_LIMITED",
+      "Too many requests. Please retry later.",
+      { details: [{ field: "request", reason: "Rate limit exceeded for this client" }], retryAfterSeconds: rateLimit.retryAfter, retryable: false },
+      req
+    );
+  }
+
   let body;
   try {
     body = await readJsonBody(req);
   } catch (error) {
-    return sendError(res, 400, requestId, "INVALID_REQUEST", "Request body failed validation.", {
-      details: [{ field: "body", reason: error.message.includes("JSON") ? "Malformed JSON" : error.message }],
-      retryable: false,
-    });
+    return sendError(
+      res,
+      400,
+      requestId,
+      "INVALID_REQUEST",
+      "Request body failed validation.",
+      { details: [{ field: "body", reason: error.message.includes("JSON") ? "Malformed JSON" : error.message }], retryable: false },
+      req
+    );
   }
 
   if (!body || (body.roast_id == null && body.analysis == null)) {
-    return sendError(res, 422, requestId, "INVALID_REQUEST", "Request body failed validation.", {
-      details: [{ field: "body", reason: "At least one of roast_id or analysis is required" }],
-      retryable: false,
-    });
+    return sendError(
+      res,
+      422,
+      requestId,
+      "INVALID_REQUEST",
+      "Request body failed validation.",
+      { details: [{ field: "body", reason: "At least one of roast_id or analysis is required" }], retryable: false },
+      req
+    );
   }
 
   let sourceAnalysis = body.analysis;
@@ -1830,36 +2258,59 @@ async function handleCompose(req, res, requestId) {
   }
 
   if (!sourceAnalysis) {
-    return sendError(res, 422, requestId, "COMPOSE_FAILED", "Pass-1 analysis is required to compose UI.", {
-      details: [{ field: "analysis", reason: "Provide analysis or a known roast_id with stored analysis" }],
-      retryable: false,
-    });
+    return sendError(
+      res,
+      422,
+      requestId,
+      "COMPOSE_FAILED",
+      "Pass-1 analysis is required to compose UI.",
+      { details: [{ field: "analysis", reason: "Provide analysis or a known roast_id with stored analysis" }], retryable: false },
+      req
+    );
   }
 
   if (!hasPass1Shape(sourceAnalysis)) {
-    return sendError(res, 422, requestId, "COMPOSE_FAILED", "Pass-1 analysis is missing required fields.", {
-      details: pass1RequiredKeys
-        .filter((key) => !Object.prototype.hasOwnProperty.call(sourceAnalysis, key))
-        .map((key) => ({ field: `analysis.${key}`, reason: "Missing required field" })),
-      retryable: false,
-    });
+    return sendError(
+      res,
+      422,
+      requestId,
+      "COMPOSE_FAILED",
+      "Pass-1 analysis is missing required fields.",
+      {
+        details: pass1RequiredKeys
+          .filter((key) => !Object.prototype.hasOwnProperty.call(sourceAnalysis, key))
+          .map((key) => ({ field: `analysis.${key}`, reason: "Missing required field" })),
+        retryable: false,
+      },
+      req
+    );
   }
 
   if (sourceAnalysis.meta && sourceAnalysis.meta.evidence_status === "insufficient") {
-    return sendError(res, 422, requestId, "COMPOSE_FAILED", "Pass-1 analysis is marked insufficient.", {
-      details: [{ field: "analysis.meta.evidence_status", reason: "Cannot compose from insufficient evidence" }],
-      retryable: false,
-    });
+    return sendError(
+      res,
+      422,
+      requestId,
+      "COMPOSE_FAILED",
+      "Pass-1 analysis is marked insufficient.",
+      { details: [{ field: "analysis.meta.evidence_status", reason: "Cannot compose from insufficient evidence" }], retryable: false },
+      req
+    );
   }
 
   const composeFailFromRecord =
     Boolean(targetRecord && targetRecord.input && getScenarioFromUrl(targetRecord.input.url) === "compose-fail");
   const composeFailFromAnalysis = shouldForceComposeFailFromAnalysis(sourceAnalysis);
   if (composeFailFromRecord || composeFailFromAnalysis) {
-    return sendError(res, 422, requestId, "COMPOSE_FAILED", "The analysis completed, but composition failed.", {
-      details: [{ field: "compose", reason: "Forced compose failure scenario for integration testing" }],
-      retryable: true,
-    });
+    return sendError(
+      res,
+      422,
+      requestId,
+      "COMPOSE_FAILED",
+      "The analysis completed, but composition failed.",
+      { details: [{ field: "compose", reason: "Forced compose failure scenario for integration testing" }], retryable: true },
+      req
+    );
   }
 
   const composeResult = await composeUiWithFallback({
@@ -1907,14 +2358,14 @@ async function handleCompose(req, res, requestId) {
     });
   }
 
-  return sendJson(res, 200, ui);
+  return sendJson(res, 200, ui, req);
 }
 
 function handleGetRoast(req, res, requestId, roastId) {
   const record = roastStore.get(roastId);
 
   if (!record) {
-    return sendError(res, 404, requestId, "NOT_FOUND", "Roast not found.", { retryable: false });
+    return sendError(res, 404, requestId, "NOT_FOUND", "Roast not found.", { retryable: false }, req);
   }
 
   if (!record.ui) {
@@ -1922,10 +2373,10 @@ function handleGetRoast(req, res, requestId, roastId) {
       ...buildRoastResource(record),
       status: "analyzed",
       ui: null,
-    });
+    }, req);
   }
 
-  return sendJson(res, 200, buildRoastResource(record));
+  return sendJson(res, 200, buildRoastResource(record), req);
 }
 
 function parseRoute(reqUrl) {
@@ -1937,11 +2388,24 @@ const server = http.createServer(async (req, res) => {
   const requestId = makeRequestId();
 
   if (req.method === "OPTIONS") {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "Content-Type",
+    const allowedOrigin = buildCorsOrigin(req.headers && req.headers.origin);
+    if (!allowedOrigin && req.headers && req.headers.origin) {
+      sendError(res, 403, requestId, "FORBIDDEN", "Origin not allowed.", { retryable: false }, req);
+      return;
+    }
+
+    const requestedHeaders = req.headers["access-control-request-headers"];
+    const preflightHeaders = {
+      "Access-Control-Allow-Origin": allowedOrigin || "*",
+      "Access-Control-Allow-Headers": requestedHeaders || "Content-Type, Authorization",
       "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    });
+      "Access-Control-Max-Age": "600",
+      Vary: "Origin",
+    };
+    if (allowedOrigin && allowedOrigin !== "*") {
+      preflightHeaders["Access-Control-Allow-Credentials"] = "true";
+    }
+    res.writeHead(204, preflightHeaders);
     res.end();
     return;
   }
@@ -1966,26 +2430,31 @@ const server = http.createServer(async (req, res) => {
         version: SERVER_VERSION,
         openai_configured: hasOpenAiConfigured(),
         timestamp: nowIso(),
-      });
+      }, req);
       return;
     }
 
     if (req.method === "GET" && pathname.startsWith("/roast/")) {
       const roastId = decodeURIComponent(pathname.slice("/roast/".length));
       if (!roastId) {
-        sendError(res, 404, requestId, "NOT_FOUND", "Roast not found.", { retryable: false });
+        sendError(res, 404, requestId, "NOT_FOUND", "Roast not found.", { retryable: false }, req);
         return;
       }
       handleGetRoast(req, res, requestId, roastId);
       return;
     }
 
-    sendError(res, 404, requestId, "NOT_FOUND", "Route not found.", { retryable: false });
+    sendError(res, 404, requestId, "NOT_FOUND", "Route not found.", { retryable: false }, req);
   } catch (error) {
-    sendError(res, 500, requestId, "INTERNAL_ERROR", "Unexpected server error.", {
-      details: [{ field: "server", reason: error.message }],
-      retryable: false,
-    });
+    sendError(
+      res,
+      500,
+      requestId,
+      "INTERNAL_ERROR",
+      "Unexpected server error.",
+      { details: [{ field: "server", reason: error.message }], retryable: false },
+      req
+    );
   }
 });
 
