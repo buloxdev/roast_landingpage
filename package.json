@@ -5,8 +5,9 @@
     "playwright": "^1.52.0"
   },
   "scripts": {
-    "build": "npm run build:css",
+    "build": "npm run build:css && npm run build:static",
     "build:css": "tailwindcss -i ./tailwind.src.css -o ./tailwind.generated.css --minify",
+    "build:static": "node ./scripts/build-static.js",
     "watch:css": "tailwindcss -i ./tailwind.src.css -o ./tailwind.generated.css --watch",
     "dev": "npm run build:css && concurrently -k -n css,ui -c magenta,cyan \"npm:watch:css\" \"npm:dev:server\"",
     "dev:server": "node ./scripts/dev.js",
