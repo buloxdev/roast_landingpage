@@ -34,6 +34,8 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_BASE_URL = String(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
 const OPENAI_PASS1_MODEL = process.env.OPENAI_PASS1_MODEL || "gpt-4o-mini";
 const OPENAI_PASS2_MODEL = process.env.OPENAI_PASS2_MODEL || "gpt-4o-mini";
+const ENABLE_OPENAI_PASS2 =
+  String(process.env.ENABLE_OPENAI_PASS2 || "").trim().toLowerCase() === "true";
 const OPENAI_TIMEOUT_MS = Math.max(
   5000,
   parsePositiveInteger(process.env.OPENAI_TIMEOUT_MS, 25000)
@@ -1908,6 +1910,22 @@ async function composeUiWithFallback({
   }
 
   const composeStartedAt = Date.now();
+  if (!ENABLE_OPENAI_PASS2) {
+    logServerInfo("compose_local", requestId, {
+      roast_id: roastId || "",
+      pass: "pass2",
+      duration_ms: getDurationMs(composeStartedAt),
+    });
+    return {
+      ui: applyStyleOverlay(fallbackUi, analysis, style),
+      composeMeta: {
+        provider: "local",
+        provider_model: "",
+        fallback: false,
+      },
+    };
+  }
+
   try {
     requireOpenAiConfigured();
     const ui = await buildAiPass2Ui({
