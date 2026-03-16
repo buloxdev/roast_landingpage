@@ -997,7 +997,7 @@
     const leadEvidence =
       issue && issue.evidence && issue.evidence[0] ? issue.evidence[0].value : "";
     return `
-      <article class="rounded-[20px] border border-[#e9d5c5] bg-[radial-gradient(circle_at_top_right,rgba(255,95,46,0.08),transparent_34%),linear-gradient(180deg,#fffdfa,#fff7f0)] p-4 shadow-[0_16px_28px_rgba(25,22,20,0.05)]" id="issue-spotlight-${issue.rank}">
+      <article class="rounded-[20px] border border-[#d9b8a1] bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.12),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(15,157,122,0.07),transparent_26%),linear-gradient(180deg,#fffdf9,#f8ece1)] p-4 shadow-[0_18px_30px_rgba(25,22,20,0.06)]" id="issue-spotlight-${issue.rank}">
         <div class="grid items-start gap-2.5 sm:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr_auto]">
           <div class="rank">${issue.rank}</div>
           <div>
@@ -1010,20 +1010,20 @@
         </div>
         <p class="mt-3 text-[18px] leading-[1.45]">${escapeHtml(issue.problem)}</p>
         <div class="mt-3 grid gap-2.5 sm:grid-cols-2">
-          <div class="rounded-[14px] border border-[#efdfd2] bg-white/85 p-3">
-            <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">Why it matters</label>
+          <div class="rounded-[14px] border border-[#dec2af] bg-[#fffaf4] p-3">
+            <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">Why it matters</label>
             <p class="m-0 leading-[1.48]">${escapeHtml(issue.why_it_hurts)}</p>
           </div>
-          <div class="rounded-[14px] border border-[#efdfd2] bg-white/85 p-3">
-            <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">What to change</label>
+          <div class="rounded-[14px] border border-[#dec2af] bg-[#fffaf4] p-3">
+            <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">What to change</label>
             <p class="m-0 leading-[1.48]">${escapeHtml(issue.fix)}</p>
           </div>
         </div>
         ${
           leadEvidence
             ? `
-          <div class="mt-3 border-t border-dashed border-[#ead5c3] pt-3">
-            <span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">Seen on page</span>
+          <div class="mt-3 border-t border-dashed border-[#dfc0a8] pt-3">
+            <span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">Seen on page</span>
             <p class="m-0 leading-[1.48]">${escapeHtml(leadEvidence)}</p>
           </div>
         `
@@ -1032,9 +1032,9 @@
         ${
           issue.example_rewrite
             ? `
-          <div class="mt-3 flex flex-col gap-3 rounded-[14px] border border-dashed border-[#edbf98] bg-[#fff3e6] p-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="mt-3 flex flex-col gap-3 rounded-[14px] border border-dashed border-[#e3ac81] bg-[#fff0dd] p-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">${escapeHtml(
+              <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">${escapeHtml(
                 issue.rewrite_label || "Example Rewrite"
               )}</label>
               <p class="m-0 leading-[1.48]">${escapeHtml(issue.example_rewrite)}</p>
@@ -1053,13 +1053,13 @@
       .map((row) => {
         const pct = Math.max(0, Math.min(100, (Number(row.score) || 0) * 10));
         return `
-          <div class="grid items-center gap-2.5 rounded-xl border border-[#e9d0c1] bg-white p-2.5 lg:grid-cols-[minmax(180px,1.2fr)_120px_1fr]">
+          <div class="grid items-center gap-2.5 rounded-xl border border-[#dcbba6] bg-[#fffdf9] p-2.5 lg:grid-cols-[minmax(180px,1.2fr)_120px_1fr]">
             <div>
               <strong class="mb-0.5 block">${escapeHtml(row.category)}</strong>
-              <div class="text-[13px] text-[#776761]">${escapeHtml(row.note)}</div>
+              <div class="text-[13px] text-[#6d5448]">${escapeHtml(row.note)}</div>
             </div>
             <div class="font-bold">${escapeHtml(row.display_score)}</div>
-            <div class="h-2 overflow-hidden rounded-full bg-[#eee4d4]" aria-hidden="true"><span class="block h-full bg-[linear-gradient(90deg,#ff5f2e,#f08b47)]" style="width:${pct}%"></span></div>
+            <div class="h-2 overflow-hidden rounded-full bg-[#ead8c8]" aria-hidden="true"><span class="block h-full bg-[linear-gradient(90deg,#ff5a36,#ff9a4d)]" style="width:${pct}%"></span></div>
           </div>
         `;
       })
@@ -1070,7 +1070,7 @@
     return items
       .map(
         (text) => `
-        <div class="flex flex-col items-start justify-between gap-2.5 rounded-[10px] border border-[#efe4d4] bg-[#fffdf8] p-2.5 sm:flex-row">
+        <div class="flex flex-col items-start justify-between gap-2.5 rounded-[10px] border border-[#dec4b2] bg-[#fffdf9] p-2.5 sm:flex-row">
           <p class="m-0 leading-[1.4]">${escapeHtml(text)}</p>
           <button class="copy-btn" data-copy="${escapeHtml(text)}">Copy</button>
         </div>
@@ -1097,21 +1097,21 @@
     if (!afterText) return "";
     const beforeValue = beforeText || "Needs work";
     return `
-      <article class="rounded-[18px] border border-[#e9d0c1] bg-[radial-gradient(circle_at_top_right,rgba(255,95,46,0.1),transparent_36%),linear-gradient(180deg,#fffdfa,#fff7f0)] p-4 shadow-[0_14px_28px_rgba(24,17,25,0.05)]">
+      <article class="rounded-[18px] border border-[#d9b8a1] bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.14),transparent_36%),linear-gradient(180deg,#fffdf8,#f8ede2)] p-4 shadow-[0_16px_28px_rgba(24,17,25,0.06)]">
         <div class="mb-1.5 flex items-center justify-between gap-2.5">
-          <div class="text-[11px] uppercase tracking-[0.1em] text-[#776761]">Rewrite preview</div>
+          <div class="text-[11px] uppercase tracking-[0.1em] text-[#6d5448]">Rewrite preview</div>
           <button class="copy-btn copy-btn-quiet" data-copy="${escapeHtml(afterText)}">Copy upgrade</button>
         </div>
         <h3 class="mb-3 text-[18px] tracking-[-0.02em]">${escapeHtml(label)}</h3>
         <div class="grid gap-2.5 sm:grid-cols-2">
-          <div class="rounded-2xl border border-[#f2d5ca] bg-[#fff3ee] p-[14px]">
+          <div class="rounded-2xl border border-[#ebc6b5] bg-[#fff1e8] p-[14px]">
             <span class="mb-2.5 inline-block text-[10px] font-bold uppercase tracking-[0.11em] text-[#9b5b47]">Current</span>
             <p class="m-0 text-[15px] leading-[1.5] text-[#8d5c4d] [text-decoration-color:rgba(141,92,77,0.45)] [text-decoration-thickness:1.5px] line-through">${escapeHtml(
               beforeValue
             )}</p>
           </div>
-          <div class="rounded-2xl border border-[#cfe8de] bg-[#f3fff9] p-[14px]">
-            <span class="mb-2.5 inline-block text-[10px] font-bold uppercase tracking-[0.11em] text-[#16a085]">Rewrite</span>
+          <div class="rounded-2xl border border-[#b9ddcf] bg-[#effcf5] p-[14px]">
+            <span class="mb-2.5 inline-block text-[10px] font-bold uppercase tracking-[0.11em] text-[#0f9d7a]">Rewrite</span>
             <p class="m-0 text-[15px] font-semibold leading-[1.5] text-[#171119]">${escapeHtml(afterText)}</p>
           </div>
         </div>
@@ -1192,10 +1192,10 @@
         })}
 
         <div class="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] xl:items-start">
-          <section class="relative overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,#120d19_0%,#23101a_42%,#421116_100%)] px-5 py-6 text-[#fff4ec] shadow-[0_32px_90px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.05)] sm:px-8 sm:py-9">
-            <div class="pointer-events-none absolute -right-[10%] -bottom-[22%] h-[340px] w-[340px] rounded-full bg-[radial-gradient(circle,rgba(22,160,133,0.32),transparent_72%)]"></div>
+          <section class="relative overflow-hidden rounded-[28px] border border-[rgba(255,241,232,0.12)] bg-[linear-gradient(135deg,#17111f_0%,#241521_44%,#4f1d17_100%)] px-5 py-6 text-[#fff4ec] shadow-[0_32px_90px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.05)] sm:px-8 sm:py-9">
+            <div class="pointer-events-none absolute -right-[10%] -bottom-[22%] h-[340px] w-[340px] rounded-full bg-[radial-gradient(circle,rgba(15,157,122,0.28),transparent_72%)]"></div>
             <div class="pointer-events-none absolute right-[18px] top-[18px] h-28 w-28 rotate-12 rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,248,240,0.16),rgba(255,248,240,0.04))]"></div>
-            <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(255,178,93,0.38),transparent_24%),radial-gradient(circle_at_88%_14%,rgba(255,95,46,0.56),transparent_28%),radial-gradient(circle_at_76%_86%,rgba(22,160,133,0.38),transparent_30%)]"></div>
+            <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(255,196,107,0.28),transparent_24%),radial-gradient(circle_at_88%_14%,rgba(255,90,54,0.44),transparent_28%),radial-gradient(circle_at_76%_86%,rgba(15,157,122,0.3),transparent_30%)]"></div>
             <div class="relative">
             <div class="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70 sm:text-xs">For designers, founders, and homepage obsessives</div>
             <h1 class="max-w-[7.5ch] font-display text-[clamp(2.125rem,8vw,4.75rem)] font-black leading-[0.92] tracking-[-0.055em] text-white">Paste the link. Watch it cook.</h1>
@@ -1246,12 +1246,12 @@
             </div>
           </section>
 
-          <section class="rounded-[28px] border border-[#ffdecd] bg-[linear-gradient(180deg,rgba(255,249,244,0.98),rgba(255,243,233,0.97))] p-5 shadow-[0_28px_76px_rgba(14,8,10,0.2),inset_0_1px_0_rgba(255,255,255,0.4)] sm:p-6">
+          <section class="rounded-[28px] border border-[#dfbca2] bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.12),transparent_32%),linear-gradient(180deg,rgba(255,250,245,0.98),rgba(248,236,224,0.97))] p-5 shadow-[0_28px_76px_rgba(14,8,10,0.2),inset_0_1px_0_rgba(255,255,255,0.4)] sm:p-6">
             <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div class="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a53d21] sm:text-xs">Run a roast</div>
                 <h2 class="m-0 text-[clamp(1.75rem,2.6vw,2.375rem)] font-black leading-[0.98] tracking-[-0.04em] text-[#171119]">Drop in the URL</h2>
-                <p class="mt-2 max-w-[34ch] text-[15px] leading-7 text-[#776761]">Choose the tone, run the scan, then jump straight to the fix with the biggest conversion upside.</p>
+                <p class="mt-2 max-w-[34ch] text-[15px] leading-7 text-[#6d5448]">Choose the tone, run the scan, then jump straight to the fix with the biggest conversion upside.</p>
               </div>
               <div class="grid gap-2 sm:justify-items-end">
                 <div class="mode-pill mode-pill-soft">${escapeHtml(mode.hint)}</div>
@@ -1263,7 +1263,7 @@
               <label class="text-[13px] font-semibold text-[#171119]" for="landing-url">Landing page URL</label>
               <input
                 id="landing-url"
-                class="w-full rounded-[18px] border border-[#e9d0c1] bg-[#fffdfa] px-[18px] py-4 text-[#171119] shadow-[inset_0_1px_0_rgba(255,255,255,0.76),0_1px_0_rgba(255,255,255,0.28)] focus:border-[rgba(255,95,46,0.52)] focus:outline-none focus:ring-4 focus:ring-[rgba(255,95,46,0.12)]${hasUrlError ? " border-[rgba(199,63,42,0.55)] bg-[#fff8f7]" : ""}"
+                class="w-full rounded-[18px] border border-[#dcb9a0] bg-[#fffdfa] px-[18px] py-4 text-[#171119] shadow-[inset_0_1px_0_rgba(255,255,255,0.76),0_1px_0_rgba(255,255,255,0.28)] focus:border-[rgba(255,90,54,0.52)] focus:outline-none focus:ring-4 focus:ring-[rgba(255,90,54,0.14)]${hasUrlError ? " border-[rgba(199,63,42,0.55)] bg-[#fff8f7]" : ""}"
                 type="url"
                 name="url"
                 placeholder="https://your-site.com"
@@ -1282,7 +1282,7 @@
 
               <div class="flex flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
                 <div class="text-[13px] font-semibold text-[#171119]">Roast mode</div>
-                <div class="text-xs leading-[1.35] text-[#776761]">Default is tuned to give the clearest, sharpest signal.</div>
+                <div class="text-xs leading-[1.35] text-[#6d5448]">Default is tuned to give the clearest, sharpest signal.</div>
               </div>
               <div class="grid gap-2 lg:grid-cols-3" role="tablist" aria-label="Roast mode">
                 ${MODE_OPTIONS.map((option) => {
@@ -1290,13 +1290,13 @@
                   return `
                     <button
                       type="button"
-                      class="rounded-2xl border px-[13px] py-3 text-left transition duration-150 ${active ? "border-[rgba(255,95,46,0.5)] bg-[radial-gradient(circle_at_top_right,rgba(255,95,46,0.12),transparent_45%),linear-gradient(180deg,#fff8f2,#ffefe2)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35),0_14px_24px_rgba(255,95,46,0.12)]" : "border-[#e9d0c1] bg-[linear-gradient(180deg,#fffdfa,#fff5ea)] hover:-translate-y-px hover:border-[rgba(255,95,46,0.36)] hover:shadow-[0_12px_22px_rgba(28,17,22,0.08)]"}"
+                      class="rounded-2xl border px-[13px] py-3 text-left transition duration-150 ${active ? "border-[rgba(255,90,54,0.5)] bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.14),transparent_45%),linear-gradient(180deg,#fff8f0,#ffebdd)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35),0_14px_24px_rgba(255,90,54,0.14)]" : "border-[#dcb9a0] bg-[linear-gradient(180deg,#fffdf9,#f7ece2)] hover:-translate-y-px hover:border-[rgba(255,90,54,0.36)] hover:shadow-[0_12px_22px_rgba(28,17,22,0.08)]"}"
                       role="tab"
                       aria-selected="${active ? "true" : "false"}"
                       data-mode-value="${escapeHtml(option.value)}"
                     >
                       <span class="block font-bold ${active ? "text-[#8e2d14]" : "text-[#171119]"}">${escapeHtml(option.label)}</span>
-                      <small class="mt-1 block text-[11px] leading-[1.35] text-[#776761]">${escapeHtml(option.hint)}</small>
+                      <small class="mt-1 block text-[11px] leading-[1.35] text-[#6d5448]">${escapeHtml(option.hint)}</small>
                     </button>
                   `;
                 }).join("")}
@@ -1304,7 +1304,7 @@
 
               <div class="flex flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
                 <div class="text-[13px] font-semibold text-[#171119]">Roast style</div>
-                <div class="text-xs leading-[1.35] text-[#776761]">Flavor only. The recommendations stay the same.</div>
+                <div class="text-xs leading-[1.35] text-[#6d5448]">Flavor only. The recommendations stay the same.</div>
               </div>
               <div class="grid gap-2 lg:grid-cols-3" role="tablist" aria-label="Roast style">
                 ${STYLE_OPTIONS.map((option) => {
@@ -1312,13 +1312,13 @@
                   return `
                     <button
                       type="button"
-                      class="rounded-2xl border px-[13px] py-3 text-left transition duration-150 ${active ? "border-[rgba(255,95,46,0.5)] bg-[radial-gradient(circle_at_top_right,rgba(255,95,46,0.12),transparent_45%),linear-gradient(180deg,#fff8f2,#ffefe2)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35),0_14px_24px_rgba(255,95,46,0.12)]" : "border-[#e9d0c1] bg-[linear-gradient(180deg,#fffdfa,#fff5ea)] hover:-translate-y-px hover:border-[rgba(255,95,46,0.36)] hover:shadow-[0_12px_22px_rgba(28,17,22,0.08)]"}"
+                      class="rounded-2xl border px-[13px] py-3 text-left transition duration-150 ${active ? "border-[rgba(255,90,54,0.5)] bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.14),transparent_45%),linear-gradient(180deg,#fff8f0,#ffebdd)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35),0_14px_24px_rgba(255,90,54,0.14)]" : "border-[#dcb9a0] bg-[linear-gradient(180deg,#fffdf9,#f7ece2)] hover:-translate-y-px hover:border-[rgba(255,90,54,0.36)] hover:shadow-[0_12px_22px_rgba(28,17,22,0.08)]"}"
                       role="tab"
                       aria-selected="${active ? "true" : "false"}"
                       data-style-value="${escapeHtml(option.value)}"
                     >
                       <span class="block font-bold ${active ? "text-[#8e2d14]" : "text-[#171119]"}">${escapeHtml(option.label)}</span>
-                      <small class="mt-1 block text-[11px] leading-[1.35] text-[#776761]">${escapeHtml(option.hint)}</small>
+                      <small class="mt-1 block text-[11px] leading-[1.35] text-[#6d5448]">${escapeHtml(option.hint)}</small>
                     </button>
                   `;
                 }).join("")}
@@ -1327,14 +1327,14 @@
               <button class="primary-btn primary-btn-lg mt-1" type="submit">Roast My Landing Page</button>
             </form>
 
-            <div class="mt-[18px] rounded-2xl border border-[#ead6c5] bg-[linear-gradient(180deg,#fff8f1,#f7ece2)] px-4 py-[14px] text-[13px] leading-[1.4] text-[#6e5647]">
+            <div class="mt-[18px] rounded-2xl border border-[#dbb79d] bg-[linear-gradient(180deg,#fff7ef,#f8e9db)] px-4 py-[14px] text-[13px] leading-[1.4] text-[#6b5347]">
               <strong>Just exploring?</strong> Open a sample report and see the full output before you run your own page.
             </div>
             <div class="mt-3 grid gap-2">
-              <button class="rounded-xl border border-[#ead7c8] bg-white/85 px-3 py-[11px] text-left font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)]" type="button" data-action="view-example-results" data-example-scenario="sample">View sample results</button>
-              <button class="rounded-xl border border-[#ead7c8] bg-white/85 px-3 py-[11px] text-left font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)]" type="button" data-action="view-example-results" data-example-scenario="strong">View strong-page results</button>
-              <button class="rounded-xl border border-[#ead7c8] bg-white/85 px-3 py-[11px] text-left font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)]" type="button" data-action="view-example-results" data-example-scenario="mobile">View mobile-issues results</button>
-              <button class="rounded-xl border border-[#ead7c8] bg-white/85 px-3 py-[11px] text-left font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)]" type="button" data-action="view-example-results" data-example-scenario="partial">View partial-evidence results</button>
+              <button class="rounded-xl border border-[#dbb79d] bg-[#fffdf9] px-3 py-[11px] text-left font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,90,54,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)]" type="button" data-action="view-example-results" data-example-scenario="sample">View sample results</button>
+              <button class="rounded-xl border border-[#dbb79d] bg-[#fffdf9] px-3 py-[11px] text-left font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,90,54,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)]" type="button" data-action="view-example-results" data-example-scenario="strong">View strong-page results</button>
+              <button class="rounded-xl border border-[#dbb79d] bg-[#fffdf9] px-3 py-[11px] text-left font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,90,54,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)]" type="button" data-action="view-example-results" data-example-scenario="mobile">View mobile-issues results</button>
+              <button class="rounded-xl border border-[#dbb79d] bg-[#fffdf9] px-3 py-[11px] text-left font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,90,54,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)]" type="button" data-action="view-example-results" data-example-scenario="partial">View partial-evidence results</button>
             </div>
 
             ${historyMarkup}
@@ -1365,27 +1365,27 @@
         })}
 
         <section class="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-          <div class="rounded-[20px] border border-[#e9d0c1] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,250,242,0.95))] p-4 shadow-shell sm:p-[22px]">
+          <div class="rounded-[20px] border border-[#d9b8a1] bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.08),transparent_30%),linear-gradient(180deg,rgba(255,252,248,0.98),rgba(248,236,224,0.96))] p-4 shadow-shell sm:p-[22px]">
             <div class="eyebrow">Analyzing</div>
             <h1 class="m-0 text-[clamp(1.625rem,2.6vw,2.375rem)] leading-[1.05] tracking-[-0.02em]">Roasting your page...</h1>
-            <p class="mt-2 text-[#776761] leading-[1.45]">
+            <p class="mt-2 text-[#6d5448] leading-[1.45]">
               We are checking the page, extracting copy, and building your roast.
             </p>
-            <p class="mt-1 text-[14px] leading-[1.45] text-[#776761]">${escapeHtml(detail)}</p>
+            <p class="mt-1 text-[14px] leading-[1.45] text-[#6d5448]">${escapeHtml(detail)}</p>
 
-            <div class="mb-2 mt-4 flex items-center justify-between gap-3 text-[13px] text-[#776761]">
+            <div class="mb-2 mt-4 flex items-center justify-between gap-3 text-[13px] text-[#6d5448]">
               <span>Report generation progress</span>
               <strong class="text-[14px] text-[#171119]">${Math.round(state.progress)}%</strong>
             </div>
             <div
-              class="h-[10px] overflow-hidden rounded-full border border-[#e4d5c0] bg-[#ecdfcd]"
+              class="h-[10px] overflow-hidden rounded-full border border-[#dcc4b1] bg-[#eadacd]"
               role="progressbar"
               aria-valuemin="0"
               aria-valuemax="100"
               aria-valuenow="${Math.round(state.progress)}"
               aria-label="Roast report progress"
             >
-              <div class="h-full bg-[linear-gradient(90deg,#ff5f2e,#f08b47)] transition-[width] duration-200" style="width: ${Math.round(
+              <div class="h-full bg-[linear-gradient(90deg,#ff5a36,#ff9a4d)] transition-[width] duration-200" style="width: ${Math.round(
                 state.progress
               )}%"></div>
             </div>
@@ -1396,15 +1396,15 @@
                 const isActive = !isDone && index === visibleCompletedSteps && state.progress < 100;
                 const statusText = isDone ? "Done" : isActive ? "In progress" : "Waiting";
                 const rowClasses = isDone
-                  ? "border-[#d4dfd8] bg-[linear-gradient(180deg,#f5fbf7,#fff)]"
+                  ? "border-[#bed9cd] bg-[linear-gradient(180deg,#f3fbf6,#fff)]"
                   : isActive
-                  ? "border-[#e2bca9] bg-[linear-gradient(180deg,#fff6ef,#fff)]"
-                  : "border-[#e9d0c1] bg-[rgba(255,255,255,0.75)]";
+                  ? "border-[#dfb39a] bg-[linear-gradient(180deg,#fff5ec,#fff)]"
+                  : "border-[#d9b8a1] bg-[rgba(255,253,249,0.82)]";
                 const dotClasses = isDone
-                  ? "border-[#bfd0c6] bg-[#e6f2ea] text-[#16a085]"
+                  ? "border-[#b7d7ca] bg-[#e6f4ed] text-[#0f9d7a]"
                   : isActive
-                  ? "border-[#efb79f] bg-[#ffe4d8] text-[#8a2f18]"
-                  : "border-[#e9d0c1] bg-[#f7efdf] text-[#171119]";
+                  ? "border-[#ebb294] bg-[#ffe8db] text-[#8a2f18]"
+                  : "border-[#dcc2af] bg-[#f7eee4] text-[#171119]";
                 return `
                   <li class="grid gap-2.5 rounded-[14px] border p-2.5 ${rowClasses}">
                     <div class="grid gap-2.5 sm:grid-cols-[auto_1fr]">
@@ -1414,9 +1414,9 @@
                       <div class="min-w-0">
                         <div class="flex flex-col items-start gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-2.5">
                           <strong class="text-[14px]">${escapeHtml(step.title)}</strong>
-                          <span class="whitespace-nowrap text-[12px] text-[#776761]">${statusText}</span>
+                          <span class="whitespace-nowrap text-[12px] text-[#6d5448]">${statusText}</span>
                         </div>
-                        <p class="mt-1 text-[13px] leading-[1.4] text-[#776761]">${escapeHtml(step.detail)}</p>
+                        <p class="mt-1 text-[13px] leading-[1.4] text-[#6d5448]">${escapeHtml(step.detail)}</p>
                       </div>
                     </div>
                   </li>
@@ -1426,11 +1426,11 @@
           </div>
 
           <aside class="grid gap-3 lg:sticky lg:top-4">
-            <section class="rounded-[18px] border border-[#e9d0c1] bg-[linear-gradient(180deg,#fff,#fff6ea)] p-[14px]">
-              <div class="text-[12px] text-[#776761]">Run mode</div>
+            <section class="rounded-[18px] border border-[#d9b8a1] bg-[linear-gradient(180deg,#fffdf9,#f8ede2)] p-[14px]">
+              <div class="text-[12px] text-[#6d5448]">Run mode</div>
               <div class="my-1 text-[28px] font-extrabold leading-[1.1]">${escapeHtml(getModeMeta(state.form.mode).label)}</div>
-              <div class="text-[12px] text-[#776761]">${escapeHtml(getModeMeta(state.form.mode).hint)}</div>
-              <div class="mt-1.5 text-[12px] text-[#776761]">${escapeHtml(getStyleMeta(state.form.style).label)}: ${escapeHtml(
+              <div class="text-[12px] text-[#6d5448]">${escapeHtml(getModeMeta(state.form.mode).hint)}</div>
+              <div class="mt-1.5 text-[12px] text-[#6d5448]">${escapeHtml(getStyleMeta(state.form.style).label)}: ${escapeHtml(
       getStyleMeta(state.form.style).hint
     )}</div>
             </section>
@@ -1473,10 +1473,10 @@
         })}
 
         <section class="grid min-h-[min(68vh,720px)] place-items-center">
-          <div class="w-full max-w-[760px] rounded-[20px] border border-[#e9d0c1] bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(255,250,242,0.98))] p-4 shadow-shell sm:p-[22px]">
+          <div class="w-full max-w-[760px] rounded-[20px] border border-[#d9b8a1] bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.08),transparent_30%),linear-gradient(180deg,rgba(255,252,248,0.98),rgba(248,236,224,0.98))] p-4 shadow-shell sm:p-[22px]">
             <div class="eyebrow">Run Error</div>
             <h1 class="m-0 text-[clamp(1.625rem,3vw,2.25rem)] leading-[1.05] tracking-[-0.02em]">${escapeHtml(error.title)}</h1>
-            <p class="mt-2 max-w-[60ch] leading-[1.45] text-[#776761]">${escapeHtml(error.message)}</p>
+            <p class="mt-2 max-w-[60ch] leading-[1.45] text-[#6d5448]">${escapeHtml(error.message)}</p>
 
             <div class="mt-[14px] flex flex-wrap items-center gap-2.5">
               <span class="error-chip">${escapeHtml(kindLabel)}</span>
@@ -1529,7 +1529,7 @@
           rightHtml: `<button class="primary-btn" data-action="rerun">Roast another page</button>`,
         })}
 
-        <section class="summary-card bg-[radial-gradient(circle_at_top_right,rgba(255,95,46,0.13),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(22,160,133,0.1),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.95),rgba(255,249,242,0.98))] p-[18px] sm:p-7">
+        <section class="summary-card bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(15,157,122,0.12),transparent_24%),linear-gradient(180deg,rgba(255,252,248,0.98),rgba(248,236,224,0.98))] p-[18px] sm:p-7">
           <div class="eyebrow">Roast verdict</div>
           <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.85fr)]">
             <div>
@@ -1537,7 +1537,7 @@
               <h1 class="mt-[14px] max-w-[12ch] text-[clamp(1.875rem,7vw,3.375rem)] font-black leading-[0.96] tracking-[-0.045em] sm:max-w-[12ch]">${escapeHtml(
                 data.header.title
               )}</h1>
-              <p class="m-0 max-w-[60ch] leading-6 text-[#776761]">${escapeHtml(data.header.subtitle)}</p>
+              <p class="m-0 max-w-[60ch] leading-6 text-[#6d5448]">${escapeHtml(data.header.subtitle)}</p>
               <p class="mt-[14px] max-w-[48ch] text-[16px] leading-[1.45] text-[#171119] sm:text-[18px]">${escapeHtml(
                 data.summary_panel.one_liner
               )}</p>
@@ -1546,8 +1546,8 @@
                   .slice(0, 3)
                   .map(
                     (item, index) => `
-                      <div class="min-h-full rounded-2xl border border-[#ecd8ca] bg-white/85 p-[14px]">
-                        <span class="mb-2.5 grid h-7 w-7 place-items-center rounded-[10px] border border-[#efc9b6] bg-[#fff0e6] font-bold text-[#9a3a1e]">${
+                      <div class="min-h-full rounded-2xl border border-[#dcc0aa] bg-[#fffbf7] p-[14px]">
+                        <span class="mb-2.5 grid h-7 w-7 place-items-center rounded-[10px] border border-[#ebb899] bg-[#ffe7d6] font-bold text-[#9f3e20]">${
                           index + 1
                         }</span>
                         <p class="m-0 font-bold leading-[1.38]">${escapeHtml(item)}</p>
@@ -1563,7 +1563,7 @@
                 <div class="score-value text-[52px]">${escapeHtml(String(data.header.score_value))}</div>
                 <div class="score-band">${escapeHtml(data.header.score_band)}</div>
               </div>
-              <div class="rounded-[18px] border border-[#ecd8ca] bg-[rgba(20,14,23,0.94)] p-4 text-[#fff4ec] shadow-[0_16px_30px_rgba(11,8,14,0.22)]">
+              <div class="rounded-[18px] border border-[rgba(255,237,225,0.14)] bg-[linear-gradient(180deg,rgba(29,19,27,0.98),rgba(19,14,24,0.96))] p-4 text-[#fff4ec] shadow-[0_16px_30px_rgba(11,8,14,0.22)]">
                 <div class="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/70">Best next move</div>
                 <p class="m-0 leading-6">${escapeHtml(data.summary_panel.cta_hint)}</p>
                 <div class="mt-[14px] grid gap-2.5">
@@ -1612,14 +1612,14 @@
                   <h2>${escapeHtml(data.summary_panel.top_problems_title)}</h2>
                   <p class="section-subtitle">${escapeHtml(data.summary_panel.cta_hint)}</p>
                 </div>
-                <div class="max-w-[250px] text-[13px] leading-[1.45] text-[#776761]">Start with these before touching the lower-value polish work.</div>
+                <div class="max-w-[250px] text-[13px] leading-[1.45] text-[#6d5448]">Start with these before touching the lower-value polish work.</div>
               </div>
               <div class="grid gap-[14px]">
                 ${topIssues.map(renderIssueSpotlightCard).join("")}
               </div>
             </section>
 
-            <section class="section bg-[radial-gradient(circle_at_top_right,rgba(255,95,46,0.08),transparent_36%),rgba(255,255,255,0.8)]" id="${sections.rewrites}">
+            <section class="section bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.12),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(15,157,122,0.06),transparent_24%),rgba(255,253,249,0.88)]" id="${sections.rewrites}">
               <h2>${escapeHtml(data.rewrite_pack_section.title)}</h2>
               <p class="section-subtitle">Recommended rewrites first, alternate options second.</p>
               <div class="grid items-start gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(240px,0.8fr)]">
@@ -1643,33 +1643,33 @@
                   )}
                 </div>
                 <aside class="lg:sticky lg:top-4">
-                  <div class="rounded-[18px] border border-[#ecd7c8] bg-[#fffdfa] p-4 shadow-[0_16px_30px_rgba(22,18,20,0.05)]">
+                  <div class="rounded-[18px] border border-[#dcbda8] bg-[linear-gradient(180deg,#fffdf9,#f8ede2)] p-4 shadow-[0_16px_30px_rgba(22,18,20,0.06)]">
                     <div class="eyebrow">Recommended bundle</div>
                     <h3 class="mb-3 text-[22px] leading-[1.02] tracking-[-0.03em]">Ship this version first</h3>
                     <div class="grid gap-2.5">
                       ${
                         primaryHeadline
-                          ? `<button class="w-full rounded-[14px] border border-[#ead8cb] bg-[linear-gradient(180deg,#fff,#fff6ee)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.3)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
+                          ? `<button class="w-full rounded-[14px] border border-[#dbbaa4] bg-[linear-gradient(180deg,#fffdf9,#f7ece1)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(255,90,54,0.3)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
                               primaryHeadline
-                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">Headline</span><strong class="block leading-[1.4]">${escapeHtml(
+                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">Headline</span><strong class="block leading-[1.4]">${escapeHtml(
                               primaryHeadline
                             )}</strong></button>`
                           : ""
                       }
                       ${
                         primarySubheadline
-                          ? `<button class="w-full rounded-[14px] border border-[#ead8cb] bg-[linear-gradient(180deg,#fff,#fff6ee)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.3)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
+                          ? `<button class="w-full rounded-[14px] border border-[#dbbaa4] bg-[linear-gradient(180deg,#fffdf9,#f7ece1)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(255,90,54,0.3)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
                               primarySubheadline
-                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">Support line</span><strong class="block leading-[1.4]">${escapeHtml(
+                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">Support line</span><strong class="block leading-[1.4]">${escapeHtml(
                               primarySubheadline
                             )}</strong></button>`
                           : ""
                       }
                       ${
                         primaryCta
-                          ? `<button class="w-full rounded-[14px] border border-[#ead8cb] bg-[linear-gradient(180deg,#fff,#fff6ee)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(255,95,46,0.3)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
+                          ? `<button class="w-full rounded-[14px] border border-[#dbbaa4] bg-[linear-gradient(180deg,#fffdf9,#f7ece1)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(255,90,54,0.3)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
                               primaryCta
-                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#776761]">CTA</span><strong class="block leading-[1.4]">${escapeHtml(
+                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">CTA</span><strong class="block leading-[1.4]">${escapeHtml(
                               primaryCta
                             )}</strong></button>`
                           : ""
@@ -1682,16 +1682,16 @@
                 <summary>More rewrite options</summary>
                 <div class="detail-panel-body">
                   <div class="grid gap-[14px]">
-                    <div class="rounded-xl border border-[#e9d0c1] bg-white p-3">
-                      <h3 class="mb-2.5 text-sm text-[#776761]">${escapeHtml(data.rewrite_pack_section.headline_options_label)}</h3>
+                    <div class="rounded-xl border border-[#dcbba6] bg-[#fffdf9] p-3">
+                      <h3 class="mb-2.5 text-sm text-[#6d5448]">${escapeHtml(data.rewrite_pack_section.headline_options_label)}</h3>
                       <div class="option-list">${renderCopyList(data.rewrite_pack_section.headlines)}</div>
                     </div>
-                    <div class="rounded-xl border border-[#e9d0c1] bg-white p-3">
-                      <h3 class="mb-2.5 text-sm text-[#776761]">${escapeHtml(data.rewrite_pack_section.subheadline_options_label)}</h3>
+                    <div class="rounded-xl border border-[#dcbba6] bg-[#fffdf9] p-3">
+                      <h3 class="mb-2.5 text-sm text-[#6d5448]">${escapeHtml(data.rewrite_pack_section.subheadline_options_label)}</h3>
                       <div class="option-list">${renderCopyList(data.rewrite_pack_section.subheadlines)}</div>
                     </div>
-                    <div class="rounded-xl border border-[#e9d0c1] bg-white p-3">
-                      <h3 class="mb-2.5 text-sm text-[#776761]">${escapeHtml(data.rewrite_pack_section.cta_options_label)}</h3>
+                    <div class="rounded-xl border border-[#dcbba6] bg-[#fffdf9] p-3">
+                      <h3 class="mb-2.5 text-sm text-[#6d5448]">${escapeHtml(data.rewrite_pack_section.cta_options_label)}</h3>
                       <div class="option-list">${renderCopyList(data.rewrite_pack_section.ctas)}</div>
                     </div>
                   </div>
@@ -1726,7 +1726,7 @@
               <details class="detail-panel" id="${sections.mobile}">
                 <summary>${escapeHtml(data.mobile_section.title)}</summary>
                 <div class="detail-panel-body">
-                  <p class="mb-[14px] text-sm text-[#776761]">${escapeHtml(
+                  <p class="mb-[14px] text-sm text-[#6d5448]">${escapeHtml(
                     data.mobile_section.score_label
                   )}: ${escapeHtml(String(data.mobile_section.score))}/10</p>
                   <ul class="m-0 pl-[18px] leading-[1.5]">
@@ -1761,7 +1761,7 @@
 
             <section class="section">
               <div class="flex flex-wrap items-center justify-between gap-3">
-                <p class="m-0 text-[13px] text-[#776761]">${escapeHtml(data.footer.disclaimer)}</p>
+                <p class="m-0 text-[13px] text-[#6d5448]">${escapeHtml(data.footer.disclaimer)}</p>
                 <button class="ghost-btn" data-action="rerun">${escapeHtml(
                   data.footer.rerun_cta
                 )}</button>

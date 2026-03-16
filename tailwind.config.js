@@ -4,21 +4,21 @@ module.exports = {
     extend: {
       colors: {
         ember: {
-          50: "#fff7f0",
-          100: "#ffe9d8",
-          200: "#ffd0af",
-          400: "#ff8647",
-          500: "#ff5f2e",
-          700: "#b53a19",
-          950: "#171119",
+          50: "#fff8f1",
+          100: "#ffe6d3",
+          200: "#ffc39a",
+          400: "#ff8a45",
+          500: "#ff5a36",
+          700: "#b8421d",
+          950: "#24140f",
         },
         mint: {
-          100: "#dff7ee",
-          500: "#16a085",
+          100: "#d9f4e8",
+          500: "#0f9d7a",
         },
       },
       boxShadow: {
-        shell: "0 24px 80px rgba(8, 6, 10, 0.28)",
+        shell: "0 28px 90px rgba(8, 6, 10, 0.24)",
       },
       fontFamily: {
         display: ['"Avenir Next"', '"Helvetica Neue"', "sans-serif"],
