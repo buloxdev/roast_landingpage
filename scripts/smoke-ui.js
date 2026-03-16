@@ -113,15 +113,11 @@ async function runFallbackScenario() {
       await page.getByRole("button", { name: "Use sample URL" }).click();
       await page.getByRole("button", { name: "Roast My Landing Page" }).click();
 
-      await page.waitForSelector("text=Backup roast shown", { timeout: 20000 });
+      await page.waitForSelector("text=Fixture fallback", { timeout: 20000 });
       await page.waitForSelector("text=Top conversion blockers");
 
-      const banner = page.locator("text=Backup roast shown");
-      assert(await banner.isVisible(), "Fallback warning banner did not appear");
-      assert(
-        await page.locator("text=Fixture fallback").first().isVisible(),
-        "Fallback source badge did not render"
-      );
+      const badge = page.locator("text=Fixture fallback").first();
+      assert(await badge.isVisible(), "Fallback source badge did not render");
     });
   } finally {
     await stopUiServer(server);

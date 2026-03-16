@@ -917,7 +917,7 @@
       });
     }
 
-    if (state.resultMeta && state.resultMeta.apiFallback) {
+    if (state.resultMeta && state.resultMeta.apiFallback && !shouldShowDevFallbackUi()) {
       warnings.push({
         kind: "fallback",
         title: ERROR_COPY.backupRoast.title,
@@ -997,7 +997,7 @@
     const leadEvidence =
       issue && issue.evidence && issue.evidence[0] ? issue.evidence[0].value : "";
     return `
-      <article class="rounded-[20px] border border-[#d9b8a1] bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.12),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(15,157,122,0.07),transparent_26%),linear-gradient(180deg,#fffdf9,#f8ece1)] p-4 shadow-[0_18px_30px_rgba(25,22,20,0.06)]" id="issue-spotlight-${issue.rank}">
+      <article class="rounded-[20px] border border-[#d7c6bb] bg-[#ffffff] p-4 shadow-[0_18px_34px_rgba(25,22,20,0.08)]" id="issue-spotlight-${issue.rank}">
         <div class="grid items-start gap-2.5 sm:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr_auto]">
           <div class="rank">${issue.rank}</div>
           <div>
@@ -1010,20 +1010,20 @@
         </div>
         <p class="mt-3 text-[18px] leading-[1.45]">${escapeHtml(issue.problem)}</p>
         <div class="mt-3 grid gap-2.5 sm:grid-cols-2">
-          <div class="rounded-[14px] border border-[#dec2af] bg-[#fffaf4] p-3">
-            <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">Why it matters</label>
+          <div class="rounded-[14px] border border-[#ddd6d1] bg-[#f8f6f4] p-3">
+            <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6f5b50]">Why it matters</label>
             <p class="m-0 leading-[1.48]">${escapeHtml(issue.why_it_hurts)}</p>
           </div>
-          <div class="rounded-[14px] border border-[#dec2af] bg-[#fffaf4] p-3">
-            <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">What to change</label>
+          <div class="rounded-[14px] border border-[#ddd6d1] bg-[#f8f6f4] p-3">
+            <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6f5b50]">What to change</label>
             <p class="m-0 leading-[1.48]">${escapeHtml(issue.fix)}</p>
           </div>
         </div>
         ${
           leadEvidence
             ? `
-          <div class="mt-3 border-t border-dashed border-[#dfc0a8] pt-3">
-            <span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">Seen on page</span>
+          <div class="mt-3 border-t border-dashed border-[#e0d7d0] pt-3">
+            <span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6f5b50]">Seen on page</span>
             <p class="m-0 leading-[1.48]">${escapeHtml(leadEvidence)}</p>
           </div>
         `
@@ -1032,9 +1032,9 @@
         ${
           issue.example_rewrite
             ? `
-          <div class="mt-3 flex flex-col gap-3 rounded-[14px] border border-dashed border-[#e3ac81] bg-[#fff0dd] p-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="mt-3 flex flex-col gap-3 rounded-[14px] border border-dashed border-[#b9ddcf] bg-[linear-gradient(180deg,#f8fffb,#eef9f3)] p-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">${escapeHtml(
+              <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#4b7166]">${escapeHtml(
                 issue.rewrite_label || "Example Rewrite"
               )}</label>
               <p class="m-0 leading-[1.48]">${escapeHtml(issue.example_rewrite)}</p>
@@ -1529,7 +1529,7 @@
           rightHtml: `<button class="primary-btn" data-action="rerun">Roast another page</button>`,
         })}
 
-        <section class="summary-card bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(15,157,122,0.12),transparent_24%),linear-gradient(180deg,rgba(255,252,248,0.98),rgba(248,236,224,0.98))] p-[18px] sm:p-7">
+        <section class="summary-card bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.12),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(15,157,122,0.08),transparent_22%),linear-gradient(180deg,rgba(255,255,252,0.99),rgba(255,248,241,0.98))] p-[18px] sm:p-7">
           <div class="eyebrow">Roast verdict</div>
           <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.85fr)]">
             <div>
@@ -1546,7 +1546,7 @@
                   .slice(0, 3)
                   .map(
                     (item, index) => `
-                      <div class="min-h-full rounded-2xl border border-[#dcc0aa] bg-[#fffbf7] p-[14px]">
+                      <div class="min-h-full rounded-2xl border border-[#dcc0aa] bg-[#ffffff] p-[14px]">
                         <span class="mb-2.5 grid h-7 w-7 place-items-center rounded-[10px] border border-[#ebb899] bg-[#ffe7d6] font-bold text-[#9f3e20]">${
                           index + 1
                         }</span>
@@ -1606,7 +1606,7 @@
 
         <div class="layout">
           <main class="stack">
-            <section class="section section-priority" id="${sections.topProblems}">
+            <section class="section section-plain section-priority" id="${sections.topProblems}">
               <div class="mb-[14px] flex flex-col items-start gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <div>
                   <h2>${escapeHtml(data.summary_panel.top_problems_title)}</h2>
@@ -1619,7 +1619,7 @@
               </div>
             </section>
 
-            <section class="section bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.12),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(15,157,122,0.06),transparent_24%),rgba(255,253,249,0.88)]" id="${sections.rewrites}">
+            <section class="section section-tool" id="${sections.rewrites}">
               <h2>${escapeHtml(data.rewrite_pack_section.title)}</h2>
               <p class="section-subtitle">Recommended rewrites first, alternate options second.</p>
               <div class="grid items-start gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(240px,0.8fr)]">
@@ -1643,33 +1643,33 @@
                   )}
                 </div>
                 <aside class="lg:sticky lg:top-4">
-                  <div class="rounded-[18px] border border-[#dcbda8] bg-[linear-gradient(180deg,#fffdf9,#f8ede2)] p-4 shadow-[0_16px_30px_rgba(22,18,20,0.06)]">
+                  <div class="rounded-[18px] border border-[#b9ddcf] bg-[linear-gradient(180deg,#ffffff,#f0fbf5)] p-4 shadow-[0_16px_30px_rgba(22,18,20,0.06)]">
                     <div class="eyebrow">Recommended bundle</div>
                     <h3 class="mb-3 text-[22px] leading-[1.02] tracking-[-0.03em]">Ship this version first</h3>
                     <div class="grid gap-2.5">
                       ${
                         primaryHeadline
-                          ? `<button class="w-full rounded-[14px] border border-[#dbbaa4] bg-[linear-gradient(180deg,#fffdf9,#f7ece1)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(255,90,54,0.3)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
+                          ? `<button class="w-full rounded-[14px] border border-[#c9e3d8] bg-[linear-gradient(180deg,#ffffff,#f6fdf9)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(15,157,122,0.28)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
                               primaryHeadline
-                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">Headline</span><strong class="block leading-[1.4]">${escapeHtml(
+                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#4b7166]">Headline</span><strong class="block leading-[1.4]">${escapeHtml(
                               primaryHeadline
                             )}</strong></button>`
                           : ""
                       }
                       ${
                         primarySubheadline
-                          ? `<button class="w-full rounded-[14px] border border-[#dbbaa4] bg-[linear-gradient(180deg,#fffdf9,#f7ece1)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(255,90,54,0.3)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
+                          ? `<button class="w-full rounded-[14px] border border-[#c9e3d8] bg-[linear-gradient(180deg,#ffffff,#f6fdf9)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(15,157,122,0.28)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
                               primarySubheadline
-                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">Support line</span><strong class="block leading-[1.4]">${escapeHtml(
+                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#4b7166]">Support line</span><strong class="block leading-[1.4]">${escapeHtml(
                               primarySubheadline
                             )}</strong></button>`
                           : ""
                       }
                       ${
                         primaryCta
-                          ? `<button class="w-full rounded-[14px] border border-[#dbbaa4] bg-[linear-gradient(180deg,#fffdf9,#f7ece1)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(255,90,54,0.3)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
+                          ? `<button class="w-full rounded-[14px] border border-[#c9e3d8] bg-[linear-gradient(180deg,#ffffff,#f6fdf9)] p-3 text-left transition duration-150 hover:-translate-y-px hover:border-[rgba(15,157,122,0.28)] hover:shadow-[0_12px_20px_rgba(20,14,18,0.08)]" data-copy="${escapeHtml(
                               primaryCta
-                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#6d5448]">CTA</span><strong class="block leading-[1.4]">${escapeHtml(
+                            )}"><span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#4b7166]">CTA</span><strong class="block leading-[1.4]">${escapeHtml(
                               primaryCta
                             )}</strong></button>`
                           : ""
@@ -1682,15 +1682,15 @@
                 <summary>More rewrite options</summary>
                 <div class="detail-panel-body">
                   <div class="grid gap-[14px]">
-                    <div class="rounded-xl border border-[#dcbba6] bg-[#fffdf9] p-3">
+                    <div class="rounded-xl border border-[#cfe4da] bg-[#ffffff] p-3">
                       <h3 class="mb-2.5 text-sm text-[#6d5448]">${escapeHtml(data.rewrite_pack_section.headline_options_label)}</h3>
                       <div class="option-list">${renderCopyList(data.rewrite_pack_section.headlines)}</div>
                     </div>
-                    <div class="rounded-xl border border-[#dcbba6] bg-[#fffdf9] p-3">
+                    <div class="rounded-xl border border-[#cfe4da] bg-[#ffffff] p-3">
                       <h3 class="mb-2.5 text-sm text-[#6d5448]">${escapeHtml(data.rewrite_pack_section.subheadline_options_label)}</h3>
                       <div class="option-list">${renderCopyList(data.rewrite_pack_section.subheadlines)}</div>
                     </div>
-                    <div class="rounded-xl border border-[#dcbba6] bg-[#fffdf9] p-3">
+                    <div class="rounded-xl border border-[#cfe4da] bg-[#ffffff] p-3">
                       <h3 class="mb-2.5 text-sm text-[#6d5448]">${escapeHtml(data.rewrite_pack_section.cta_options_label)}</h3>
                       <div class="option-list">${renderCopyList(data.rewrite_pack_section.ctas)}</div>
                     </div>
@@ -1699,7 +1699,7 @@
               </details>
             </section>
 
-            <section class="section">
+            <section class="section section-appendix">
               <h2 class="mb-2.5 text-base tracking-[0.01em]">Appendix</h2>
               <details class="detail-panel" id="${sections.quickWins}" open>
                 <summary>${escapeHtml(data.quick_wins_section.title)} (${escapeHtml(
@@ -1759,7 +1759,7 @@
               </details>
             </section>
 
-            <section class="section">
+            <section class="section section-plain">
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <p class="m-0 text-[13px] text-[#6d5448]">${escapeHtml(data.footer.disclaimer)}</p>
                 <button class="ghost-btn" data-action="rerun">${escapeHtml(

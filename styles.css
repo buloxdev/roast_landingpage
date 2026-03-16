@@ -111,8 +111,10 @@ button {
 }
 
 .mode-pill-soft {
-  background: rgba(255, 248, 240, 0.08);
-  color: #fff4ec;
+  background: linear-gradient(180deg, rgba(255, 246, 238, 0.92), rgba(252, 232, 217, 0.88));
+  border-color: rgba(214, 151, 119, 0.34);
+  color: #8a3d21;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .primary-btn,
@@ -211,8 +213,8 @@ button {
   border: 1px solid var(--line);
   border-radius: 20px;
   background:
-    radial-gradient(circle at top right, rgba(255, 111, 61, 0.06), transparent 30%),
-    linear-gradient(180deg, rgba(255, 251, 247, 0.98), rgba(249, 237, 225, 0.96));
+    radial-gradient(circle at top right, rgba(255, 111, 61, 0.04), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 253, 0.99), rgba(255, 250, 245, 0.98));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
     0 16px 30px rgba(22, 18, 20, 0.05);
@@ -243,6 +245,26 @@ button {
 
 .section {
   padding: 18px;
+}
+
+.section.section-plain {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.section.section-tool {
+  border-color: #b8dbce;
+  background:
+    radial-gradient(circle at top right, rgba(15, 157, 122, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(247, 255, 251, 0.98), rgba(238, 248, 242, 0.98));
+}
+
+.section.section-appendix {
+  border-color: #ddd0c6;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 254, 0.98), rgba(252, 248, 244, 0.98));
 }
 
 .section-subtitle {
@@ -290,6 +312,11 @@ button {
 }
 
 .score-badge {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 6px;
   padding: 14px 16px;
   min-width: 104px;
   background:
@@ -304,28 +331,30 @@ button {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--muted);
+  max-width: 6ch;
+  line-height: 1.15;
 }
 
 .score-value {
   display: block;
-  margin-top: 2px;
   font-size: 28px;
-  line-height: 1.1;
+  line-height: 0.95;
   color: var(--ink);
 }
 
 .score-band {
   color: #9b5b47;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  line-height: 1.2;
 }
 
 .detail-panel {
-  border: 1px solid var(--line);
+  border: 1px solid #ddd3cb;
   border-radius: 16px;
-  background: rgba(255, 253, 250, 0.82);
+  background: rgba(255, 255, 255, 0.98);
   overflow: hidden;
 }
 
@@ -363,8 +392,19 @@ button {
   padding: 0 16px 16px;
 }
 
+.section-tool .detail-panel {
+  border-color: #cfe4da;
+  background: rgba(255, 255, 255, 0.9);
+}
+
 .issue-card {
   padding: 16px;
+}
+
+.issue-card h3,
+.issue-card p,
+.issue-card strong {
+  color: #3b2b24;
 }
 
 .issue-top {
@@ -391,7 +431,7 @@ button {
 .issue-category {
   display: inline-block;
   margin-top: 4px;
-  color: #91563d;
+  color: #8f5a43;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -486,8 +526,8 @@ button {
   border: 1px dashed #e0b08c;
   border-radius: 14px;
   background:
-    radial-gradient(circle at top right, rgba(255, 111, 61, 0.08), transparent 34%),
-    linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(255, 241, 226, 0.94));
+    radial-gradient(circle at top right, rgba(255, 111, 61, 0.06), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 252, 0.98), rgba(255, 246, 236, 0.95));
   padding: 14px;
   color: var(--ink);
   line-height: 1.48;
@@ -683,6 +723,13 @@ button {
   color: rgba(255, 243, 235, 0.72);
 }
 
+.topbar .mode-pill-soft {
+  background: rgba(255, 248, 240, 0.08);
+  border-color: rgba(255, 243, 234, 0.16);
+  color: #fff4ec;
+  box-shadow: none;
+}
+
 .rail-primary-btn {
   width: 100%;
 }
@@ -779,6 +826,18 @@ button {
 
   .results-banner-actions .ghost-btn {
     width: 100%;
+  }
+
+  .score-badge {
+    grid-template-columns: auto 1fr;
+  }
+
+  .score-label {
+    max-width: none;
+  }
+
+  .score-band {
+    grid-column: 1 / -1;
   }
 
   .mobile-action-bar {
