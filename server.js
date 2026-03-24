@@ -29,13 +29,28 @@ function loadEnvFile(filePath) {
 loadEnvFile(path.join(__dirname, ".env"));
 loadEnvFile(path.join(__dirname, ".env.local"));
 
+function resolvePass2Enabled(rawValue, apiKey) {
+  const normalized = String(rawValue || "").trim().toLowerCase();
+  if (normalized === "true") return true;
+  if (normalized === "false") return false;
+  return Boolean(apiKey);
+}
+
+function normalizeRoastStyle(rawValue) {
+  const normalized = String(rawValue || "").trim().toLowerCase();
+  if (normalized === "deadpan" || normalized === "bold" || normalized === "observational") {
+    return normalized;
+  }
+  if (normalized === "sharp") return "observational";
+  return "observational";
+}
+
 const PORT = Number(process.env.PORT || 8787);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_BASE_URL = String(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
 const OPENAI_PASS1_MODEL = process.env.OPENAI_PASS1_MODEL || "gpt-4o-mini";
 const OPENAI_PASS2_MODEL = process.env.OPENAI_PASS2_MODEL || "gpt-4o-mini";
-const ENABLE_OPENAI_PASS2 =
-  String(process.env.ENABLE_OPENAI_PASS2 || "").trim().toLowerCase() === "true";
+const ENABLE_OPENAI_PASS2 = resolvePass2Enabled(process.env.ENABLE_OPENAI_PASS2, OPENAI_API_KEY);
 const OPENAI_TIMEOUT_MS = Math.max(
   5000,
   parsePositiveInteger(process.env.OPENAI_TIMEOUT_MS, 25000)
@@ -1124,41 +1139,47 @@ function buildPromptEvidence(extraction, requestedUrl, mode) {
 
 function getRoastStyleInstruction(style) {
   if (style === "observational") {
-    return "Use a clean observational roast style. Notice the odd patterns, vague habits, and quiet contradictions in the page, then point them out in a playful, useful way. Keep it crisp, clever, and free of vulgar language.";
+    return "Use a clean observational roast style. Notice familiar homepage habits, quiet contradictions, vague promises, and oddly safe language, then point them out in a playful, useful way. Sound like you actually noticed the page. Keep it crisp, clever, specific, and free of vulgar language.";
   }
   if (style === "deadpan") {
-    return "Use a dry, understated deadpan tone. Be concise, quietly cutting, and slightly amused. Favor lines that sound effortless rather than loud. Keep the language clean and never use vulgar phrasing.";
+    return "Use a dry, understated deadpan tone. Be concise, quietly cutting, and slightly amused. Favor restraint, understatement, and mild disappointment over loud punchlines. Keep the language clean, specific, and never vulgar.";
   }
   if (style === "bold") {
-    return "Use a bold, high-contrast roast style. Make the strongest problems feel unmistakable, use punchier framing, and land harder without becoming sloppy or cruel. Keep the language clean and never use vulgar phrasing.";
+    return "Use a bold, high-contrast roast style. Make the strongest problems feel unmistakable, use punchier framing, and land harder without becoming sloppy or cruel. Sound decisive, not theatrical. Keep the language clean and never vulgar.";
   }
-  return "Use a clean observational roast style. Notice the odd patterns, vague habits, and quiet contradictions in the page, then point them out in a playful, useful way. Keep it crisp, clever, and free of vulgar language.";
+  return "Use a clean observational roast style. Notice familiar homepage habits, quiet contradictions, vague promises, and oddly safe language, then point them out in a playful, useful way. Sound like you actually noticed the page. Keep it crisp, clever, specific, and free of vulgar language.";
 }
 
 function getRoastStyleFewShot(style) {
   if (style === "deadpan") {
     return [
-      "Header title example: \"A real product. A still-blurry pitch.\"",
-      "One-liner example: \"The page is presentable. The message is still late.\"",
+      "Header title example: \"Clear design. Delayed point.\"",
+      "Subtitle example: \"The page looks credible, but the offer still arrives after the reader's attention leaves.\"",
+      "One-liner example: \"The page is presentable. The reason to care is still pending.\"",
       "Issue title example 1: \"Technically a headline. Not yet a reason to care.\"",
       "Issue title example 2: \"It is a button. It is not yet a next step.\"",
+      "Issue title example 3: \"The proof exists. It is simply not helping yet.\"",
       "Share quote example: \"Clean design. Delayed meaning.\"",
     ].join("\\n");
   }
   if (style === "bold") {
     return [
-      "Header title example: \"Strong surface. Soft pitch.\"",
-      "One-liner example: \"The page looks ready for traffic. The message still folds under pressure.\"",
+      "Header title example: \"Polished page. Soft pitch.\"",
+      "Subtitle example: \"The page looks ready to convert, but the core message still blinks when it needs to land a point.\"",
+      "One-liner example: \"The design looks launch-ready. The message still folds under pressure.\"",
       "Issue title example 1: \"The headline walks on stage without a point.\"",
       "Issue title example 2: \"The next step shows up with no conviction.\"",
+      "Issue title example 3: \"The page asks for trust before it earns any.\"",
       "Share quote example: \"Polished page. Underpowered message.\"",
     ].join("\\n");
   }
   return [
     "Header title example: \"This page keeps acting like we already know what it does.\"",
+    "Subtitle example: \"The design is polished, but the offer keeps circling the point instead of making it obvious.\"",
     "One-liner example: \"The design is doing its job. The message keeps taking the scenic route.\"",
     "Issue title example 1: \"The headline keeps hinting instead of saying.\"",
     "Issue title example 2: \"The next step sounds like it was named at the last minute.\"",
+    "Issue title example 3: \"The proof is there, but it is hiding from the sale.\"",
     "Share quote example: \"Nice page. Strange habit of avoiding the point.\"",
   ].join("\\n");
 }
@@ -2097,7 +2118,7 @@ async function handleAnalyze(req, res, requestId) {
   }
 
   const mode = typeof body.mode === "string" && body.mode.trim() ? body.mode.trim() : "balanced";
-  const style = typeof body.style === "string" && body.style.trim() ? body.style.trim() : "sharp";
+  const style = normalizeRoastStyle(body.style);
   const roastId = makeId("roast");
   const analyzeStartedAt = Date.now();
   const snapshotStartedAt = Date.now();
@@ -2341,12 +2362,13 @@ async function handleCompose(req, res, requestId) {
         ? sourceAnalysis.meta.source_url
         : "https://example.com",
     mode: typeof body.mode === "string" ? body.mode : "balanced",
-    style:
+    style: normalizeRoastStyle(
       typeof body.style === "string" && body.style
         ? body.style
         : targetRecord && targetRecord.input && targetRecord.input.style
         ? targetRecord.input.style
-        : "sharp",
+        : "observational"
+    ),
     analysis: sourceAnalysis,
   });
   const ui = composeResult.ui;
@@ -2369,7 +2391,7 @@ async function handleCompose(req, res, requestId) {
       input: {
         url: "https://example-saas.com",
         mode: typeof body.mode === "string" ? body.mode : "balanced",
-        style: typeof body.style === "string" ? body.style : "sharp",
+        style: normalizeRoastStyle(typeof body.style === "string" ? body.style : "observational"),
       },
       analysis: clone(sourceAnalysis),
       ui: clone(ui),

@@ -42,6 +42,38 @@ V1 content rules:
   - `share_card_copy.quote`
 - Do not turn every field into a joke. Keep `fix`, `why_it_hurts`, and score notes clear and useful.
 
+Field-by-field job definition:
+- `header.title`: the sharpest, most memorable verdict on the page. It should sound like a human immediately noticed the main problem. Opinionated, concise, and specific in spirit.
+- `header.subtitle`: a clearer unpacking of the verdict. It should explain what is not landing and why, without becoming stiff or generic.
+- `summary_panel.one_liner`: a fast skim line. It should sound human and pointed, but stay easy to parse.
+- `summary_panel.top_3_problems`: ranked by impact, not by which line is funniest.
+- `issue_cards[*].title`: punchy, short, and distinct. A good title should feel like a real observation, not a category label.
+- `issue_cards[*].problem`: one strong diagnosis that references the actual page language, audience, CTA, structure, or proof.
+- `issue_cards[*].why_it_hurts`: plain language only. Explain the conversion consequence with no cleverness tax.
+- `issue_cards[*].fix`: plain language only. Tell the user what to change next.
+- `issue_cards[*].example_rewrite`: useful copy, not comedy.
+- `share_card_copy.quote`: the funniest line in the output, but it must still describe the real problem.
+
+Core writing formula:
+- Build each major issue using this order:
+  1. Evidence from the page
+  2. Insight about what is failing
+  3. One sharp line of personality
+  4. One useful fix
+- The joke should sharpen the insight, not replace it.
+- If a line would still make sense with the actual page words removed, it is probably too generic.
+- If a line is funny but does not help the user improve the page, cut it.
+- Use the page's own words against it when helpful. Quoted or paraphrased page language makes the roast feel real.
+- Do not overquote. One strong reference is better than multiple weak echoes.
+
+Trust and usefulness rules:
+- Sound like a sharp reviewer with taste, not a meme generator.
+- Avoid internal marketing jargon when a normal user-facing phrase would say the same thing.
+- Do not repeat the same sentence shape across the header, one-liner, issue titles, and share quote.
+- Use at most one strong comedic turn per major issue.
+- The funniest issue must not outrank the most important issue.
+- Vary by page type and page evidence. SaaS, ecommerce, and service pages should not all sound like the same roast.
+
 Style calibration:
 - `Observational`: playful pattern-spotting, lightly smug, clean. Example energy: "This page keeps circling the point like we already know what it does."
 - `Deadpan`: dry, understated, cutting. Example energy: "Technically a headline. Not yet a reason to care."
@@ -68,6 +100,19 @@ Writing preferences:
 - A strong roast line should still make sense to a founder skimming fast.
 - Avoid filler setups like "It feels like" or "It seems like" unless uncertainty is required by the evidence.
 - Avoid repeating the same roast move across fields. Vary sentence rhythm and structure.
+- Avoid generic consultant words in visible roast copy when a more human line would work:
+  - "messaging gaps"
+  - "unclear value proposition"
+  - "suboptimal"
+  - "optimize"
+  - "effective"
+  - "improve"
+- Prefer concrete, vivid, user-readable complaints like:
+  - vague promise
+  - timid next step
+  - feature pileup
+  - proof buried too low
+  - polished design, blurry pitch
 
 Schema fidelity reminders:
 - `impact_badge` and `confidence_badge` must be exactly: High | Medium | Low

@@ -34,6 +34,50 @@ Style application guidance
   - `Deadpan`: use restraint, understatement, and calm disappointment
   - `Bold`: use cleaner high-contrast framing and stronger verdict language
 
+Debate-driven writing rules
+- The roast must feel anchored to this specific page, not like a reusable template.
+- Every major issue should quote or clearly paraphrase actual page copy, CTA text, structure, or proof placement from Pass 1.
+- The first visible line should already sound like a point of view, not a neutral summary.
+- Rank issues by conversion impact, not by which title is funniest.
+- Each major issue should deliver:
+  - one clear diagnosis
+  - one sharp line of personality
+  - one practical fix
+- Keep the humor concentrated in:
+  - `header.title`
+  - `header.subtitle`
+  - `summary_panel.one_liner`
+  - first 3 `issue_cards[*].title`
+  - `share_card_copy.quote`
+- Keep these fields plain and useful:
+  - `issue_cards[*].why_it_hurts`
+  - `issue_cards[*].fix`
+  - `issue_cards[*].example_rewrite`
+  - `score_section.items[*].note`
+- Do not let every field use the same cadence.
+- Do not write like a consultant with a joke glued on.
+- Do not write like a meme generator.
+- If a phrase could apply to 100 unrelated sites, rewrite it to be more specific.
+- If a joke does not make the critique clearer, remove it.
+
+Field-specific guidance
+- `header.title`: 4 to 8 words when possible. Memorable, opinionated, and sharp.
+- `header.subtitle`: explain what is not landing and why in plain, stylish language.
+- `summary_panel.one_liner`: should sound human, concise, and easy to repeat.
+- `summary_panel.top_3_problems`: short, ranked, and distinct from one another.
+- `issue_cards[*].title`: should read like an observation, not a taxonomy label.
+- `issue_cards[*].problem`: must connect the issue to something actually visible on the page.
+- `issue_cards[*].why_it_hurts`: explain the user consequence in plain language.
+- `issue_cards[*].fix`: tell the user exactly what to change next.
+- `issue_cards[*].example_rewrite`: write stronger copy, not funnier copy.
+- `share_card_copy.quote`: this may be the most playful line, but it still must reflect the page's real problem.
+
+Preferred formula for each major issue
+- Evidence -> insight -> sharp line -> fix
+- The title carries most of the style.
+- The body earns trust.
+- The fix earns the product.
+
 Output requirements (exact top-level keys, no extras)
 - header
 - summary_panel
