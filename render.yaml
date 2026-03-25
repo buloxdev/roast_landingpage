@@ -9,3 +9,5 @@ services:
     envVars:
       - key: PLAYWRIGHT_BROWSERS_PATH
         value: "0"
+      - key: ENABLE_OPENAI_PASS2
+        value: "false"

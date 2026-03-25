@@ -29,11 +29,11 @@ function loadEnvFile(filePath) {
 loadEnvFile(path.join(__dirname, ".env"));
 loadEnvFile(path.join(__dirname, ".env.local"));
 
-function resolvePass2Enabled(rawValue, apiKey) {
+function resolvePass2Enabled(rawValue) {
   const normalized = String(rawValue || "").trim().toLowerCase();
   if (normalized === "true") return true;
   if (normalized === "false") return false;
-  return Boolean(apiKey);
+  return false;
 }
 
 function normalizeRoastStyle(rawValue) {
@@ -50,7 +50,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_BASE_URL = String(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
 const OPENAI_PASS1_MODEL = process.env.OPENAI_PASS1_MODEL || "gpt-4o-mini";
 const OPENAI_PASS2_MODEL = process.env.OPENAI_PASS2_MODEL || "gpt-4o-mini";
-const ENABLE_OPENAI_PASS2 = resolvePass2Enabled(process.env.ENABLE_OPENAI_PASS2, OPENAI_API_KEY);
+const ENABLE_OPENAI_PASS2 = resolvePass2Enabled(process.env.ENABLE_OPENAI_PASS2);
 const OPENAI_TIMEOUT_MS = Math.max(
   5000,
   parsePositiveInteger(process.env.OPENAI_TIMEOUT_MS, 25000)
