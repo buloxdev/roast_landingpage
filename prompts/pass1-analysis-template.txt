@@ -33,6 +33,12 @@ Instructions
 - Quote exact copy when criticizing messaging (if quotes exist).
 - If evidence is partial, keep the structure complete and explicitly mark limitations/low confidence.
 - Do not hallucinate missing page content.
+- Before recommending any rewrite, infer:
+  - product/business category
+  - likely audience
+  - likely promised outcome
+- Treat the hero as a system, not just one line. Evaluate the headline together with its supporting copy and page context.
+- If the current headline is directionally strong but the subhead/context is doing too little, preserve the headline direction and rewrite the support line instead of flattening the headline into generic SaaS boilerplate.
 
 Recommended output shape (flexible, extend as needed)
 {

@@ -63,6 +63,13 @@ Analysis quality standards:
 - Include concrete fixes and example rewrites when possible.
 - Distinguish observed evidence vs inference.
 - Use concise, plain language suitable for downstream UI rendering.
+- Identify the business context before criticizing the copy:
+  - What category is this product in?
+  - Who is it for?
+  - What outcome is it promising?
+- Do not blindly force every strong headline into a generic "X for Y that helps Z" template.
+- If the headline is brand-led, punchy, or category-native and the supporting copy provides the missing context, preserve that direction and improve the subheadline/supporting copy instead of replacing the headline with something worse.
+- Only recommend a full headline replacement when the current hero plus supporting copy still leaves category, audience, or payoff materially unclear.
 
 Formatting rules:
 - JSON only.

@@ -105,6 +105,18 @@ const PRODUCT_TERMS = [
   "tool",
   "app",
   "service",
+  "website builder",
+  "site builder",
+  "builder",
+  "cms",
+  "editor",
+  "design tool",
+  "website",
+  "sites",
+  "landing page",
+  "commerce",
+  "storefront",
+  "hosting",
   "crm",
   "dashboard",
   "analytics",
@@ -510,6 +522,8 @@ function inferProductType(heroText) {
 
 function inferOutcome(heroText, description) {
   const combined = cleanText(`${heroText} ${description}`);
+  if (/build|publish|launch|ship/i.test(combined)) return "ship faster";
+  if (/design|create|make/i.test(combined)) return "create faster";
   if (/increase|grow|boost/i.test(combined)) return "grow faster";
   if (/save|reduce|cut/i.test(combined)) return "save time";
   if (/automate/i.test(combined)) return "automate manual work";
@@ -517,6 +531,72 @@ function inferOutcome(heroText, description) {
   if (/analy/i.test(combined)) return "get clearer insights";
   if (/collect/i.test(combined)) return "capture more demand";
   return "get a clearer result";
+}
+
+function inferProductCategory(text) {
+  const lowered = cleanText(text).toLowerCase();
+  if (!lowered) return "";
+  if (/website builder|site builder/i.test(lowered)) return "website builder";
+  if (/\bcms\b|content management/i.test(lowered)) return "CMS";
+  if (/design tool|design platform/i.test(lowered)) return "design platform";
+  if (/commerce platform|storefront/i.test(lowered)) return "commerce platform";
+  if (/automation/i.test(lowered)) return "automation platform";
+  if (/analytics/i.test(lowered)) return "analytics platform";
+  if (/\bapi\b/i.test(lowered)) return "API platform";
+  if (/assistant/i.test(lowered)) return "AI assistant";
+  for (const term of PRODUCT_TERMS) {
+    if (lowered.includes(term)) return term;
+  }
+  return "";
+}
+
+function buildBusinessContext(extraction) {
+  const hero = cleanText(extraction.heroHeadline);
+  const support = cleanText(extraction.heroSupport);
+  const description = cleanText(extraction.description);
+  const combined = cleanText(`${hero} ${support} ${description} ${extraction.visibleText || ""}`);
+  const audience = inferAudience(`${hero} ${support} ${description}`);
+  const outcome = inferOutcome(`${hero} ${support}`, description);
+  const productCategory = inferProductCategory(combined);
+  const heroWordCount = hero ? hero.split(/\s+/).length : 0;
+  const heroHasOutcomeSignal = /\b(faster|better|easier|smarter|without|in minutes|in hours|ship|launch|publish|grow)\b/i.test(
+    `${hero} ${support}`
+  );
+  const supportProvidesCategory = Boolean(productCategory) && new RegExp(productCategory.replace(/\s+/g, "\\s+"), "i").test(`${support} ${description}`);
+  const preserveHeroDirection =
+    Boolean(hero) &&
+    heroWordCount >= 2 &&
+    heroWordCount <= 8 &&
+    heroHasOutcomeSignal &&
+    supportProvidesCategory;
+
+  return {
+    hero,
+    support,
+    description,
+    audience,
+    outcome,
+    productCategory: productCategory || inferProductType(`${hero} ${description}`),
+    supportProvidesCategory,
+    preserveHeroDirection,
+  };
+}
+
+function buildContextualSupportLine(context) {
+  const category = context.productCategory || "product";
+  const audience = context.audience || "the right buyer";
+  const outcome = context.outcome || "move faster";
+  return `${capitalize(category)} for ${audience} who want to ${outcome}.`;
+}
+
+function buildContextualHeadlineRewrite(context) {
+  if (context.preserveHeroDirection && context.hero) {
+    return `${context.hero} ${buildContextualSupportLine(context)}`;
+  }
+  const category = context.productCategory || "offer";
+  const audience = context.audience || "the right buyer";
+  const outcome = context.outcome || "get a clearer result";
+  return `${capitalize(category)} for ${audience} that helps them ${outcome}.`;
 }
 
 function hasOpenAiConfigured() {
@@ -1212,12 +1292,19 @@ function scoreExtraction(extraction) {
   const hero = cleanText(extraction.heroHeadline);
   const support = cleanText(extraction.heroSupport);
   const combinedHero = cleanText(`${hero} ${support}`);
+  const context = buildBusinessContext(extraction);
   const cta = extraction.ctas[0] || "";
   const bodyText = extraction.visibleText;
   const heroWordCount = hero ? hero.split(/\s+/).length : 0;
-  const heroHasAudience = /\bfor\b/i.test(combinedHero) || /teams|founders|marketers|developers|sales|product/i.test(combinedHero);
-  const heroHasProduct = countMatches(combinedHero, PRODUCT_TERMS) > 0;
-  const heroHasSpecificity = /\d|%|minutes|hours|days|faster|without|automatically/i.test(combinedHero);
+  const heroHasAudience =
+    /\bfor\b/i.test(combinedHero) ||
+    /teams|founders|marketers|developers|sales|product|designers|agencies|creators/i.test(
+      `${combinedHero} ${extraction.description}`
+    );
+  const heroHasProduct = countMatches(`${combinedHero} ${extraction.description}`, PRODUCT_TERMS) > 0;
+  const heroHasSpecificity = /\d|%|minutes|hours|days|faster|without|automatically|better|publish|ship|launch/i.test(
+    `${combinedHero} ${extraction.description}`
+  );
   const differentiationCount = countMatches(bodyText, DIFFERENTIATION_TERMS);
   const trustCount = extraction.trustMentions;
   const objectionCount = extraction.objectionMentions;
@@ -1225,9 +1312,21 @@ function scoreExtraction(extraction) {
   const ctaSpecific = cta && !GENERIC_CTA_RE.test(cta) && /\b(start|book|schedule|demo|trial|audit|see|talk|watch|contact)\b/i.test(cta);
 
   const scores = {
-    "Clarity of offer": clamp(2 + (hero ? 2 : 0) + (heroHasProduct ? 3 : 0) + (heroHasSpecificity ? 2 : 0), 2, 9),
+    "Clarity of offer": clamp(
+      2 + (hero ? 2 : 0) + (heroHasProduct ? 3 : 0) + (heroHasSpecificity ? 2 : 0) + (context.supportProvidesCategory ? 1 : 0),
+      2,
+      9
+    ),
     "Target audience clarity": clamp(2 + (heroHasAudience ? 4 : 0) + (/for /i.test(support) ? 1 : 0), 2, 9),
-    "Headline strength": clamp(2 + (hero ? 2 : 0) + (heroWordCount >= 4 && heroWordCount <= 12 ? 2 : 0) + (heroHasSpecificity ? 2 : 0), 2, 9),
+    "Headline strength": clamp(
+      2 +
+        (hero ? 2 : 0) +
+        (heroWordCount >= 3 && heroWordCount <= 12 ? 2 : 0) +
+        (heroHasSpecificity ? 2 : 0) +
+        (context.preserveHeroDirection ? 1 : 0),
+      2,
+      9
+    ),
     "CTA quality": clamp(2 + (cta ? 2 : 0) + (ctaSpecific ? 3 : 0) + (!cta || GENERIC_CTA_RE.test(cta) ? 0 : 1), 2, 9),
     "Messaging / differentiation": clamp(2 + Math.min(4, differentiationCount) + (heroHasSpecificity ? 1 : 0), 2, 9),
     "Trust / proof": clamp(2 + Math.min(5, trustCount), 2, 9),
@@ -1279,29 +1378,49 @@ function buildCategoryScoreItems(scores, extraction) {
 function buildIssues(scores, extraction) {
   const cta = extraction.ctas[0] || "No clear CTA detected";
   const hero = extraction.heroHeadline || extraction.title || "No clear hero headline detected";
+  const context = buildBusinessContext(extraction);
+  const preserveHeroDirection = context.preserveHeroDirection;
+  const contextualSupportLine = buildContextualSupportLine(context);
+  const contextualHeadlineRewrite = buildContextualHeadlineRewrite(context);
   const templates = {
     "Clarity of offer": {
-      title: "Your hero headline hides the offer",
-      problem: "The hero does not clearly explain what the product is and why someone should care.",
-      why: "Visitors should not have to infer the category or outcome from vague copy.",
-      fix: "Name the product category, audience, and outcome directly in the hero headline.",
-      rewrite: `${inferProductType(hero)} for ${inferAudience(hero)} that helps them ${inferOutcome(hero, extraction.description)}.`,
+      title: preserveHeroDirection ? "The hero direction works, but the context lands too late" : "Your hero headline hides the offer",
+      problem: preserveHeroDirection
+        ? "The headline has a strong directional promise, but the surrounding copy does not clarify the product fast enough."
+        : "The hero does not clearly explain what the product is and why someone should care.",
+      why: preserveHeroDirection
+        ? "A strong brand-led line still needs nearby category context so the right visitor instantly gets it."
+        : "Visitors should not have to infer the category or outcome from vague copy.",
+      fix: preserveHeroDirection
+        ? "Keep the headline direction if it fits the brand voice, and make the subhead do the clarifying work."
+        : "Name the product category, audience, and outcome directly in the hero or supporting copy.",
+      rewrite: preserveHeroDirection ? contextualSupportLine : contextualHeadlineRewrite,
       evidence: [{ type: "quote", value: truncate(hero, 90) }],
     },
     "Target audience clarity": {
       title: "The page does not clearly say who it is for",
       problem: "The page leaves the intended buyer too implicit in the hero.",
       why: "When people cannot quickly self-identify, bounce risk goes up.",
-      fix: "Call out the audience explicitly near the top of the page.",
-      rewrite: `Built for ${inferAudience(`${hero} ${extraction.heroSupport}`)} who need to ${inferOutcome(hero, extraction.description)}.`,
+      fix: preserveHeroDirection
+        ? "If the hero stays broad, use the subhead or supporting line to name the buyer more explicitly."
+        : "Call out the audience explicitly near the top of the page.",
+      rewrite: preserveHeroDirection
+        ? contextualSupportLine
+        : `Built for ${inferAudience(`${hero} ${extraction.heroSupport}`)} who need to ${inferOutcome(hero, extraction.description)}.`,
       evidence: [{ type: "quote", value: truncate(hero || extraction.description, 90) }],
     },
     "Headline strength": {
-      title: "The headline is not doing enough conversion work",
-      problem: "The headline is either too abstract, too broad, or not specific enough to carry the first impression.",
+      title: preserveHeroDirection ? "The headline is promising, but the support copy needs to cash it out" : "The headline is not doing enough conversion work",
+      problem: preserveHeroDirection
+        ? "The headline creates momentum, but the supporting message needs to make the category and buyer payoff more obvious."
+        : "The headline is either too abstract, too broad, or not specific enough to carry the first impression.",
       why: "The hero headline should quickly set context before visitors start scrolling.",
-      fix: "Use stronger language that says what the product does and the result it creates.",
-      rewrite: `${inferOutcome(hero, extraction.description)} with a ${inferProductType(hero)} built for ${inferAudience(hero)}.`,
+      fix: preserveHeroDirection
+        ? "Preserve the short punchy headline, then add a sharper subhead with category, audience, and payoff."
+        : "Use stronger language that says what the product does and the result it creates.",
+      rewrite: preserveHeroDirection
+        ? `${hero} ${contextualSupportLine}`
+        : `${inferOutcome(hero, extraction.description)} with a ${inferProductType(hero)} built for ${inferAudience(hero)}.`,
       evidence: [{ type: "quote", value: truncate(hero, 90) }],
     },
     "CTA quality": {
@@ -1405,9 +1524,30 @@ function buildPositives(scores, extraction) {
 }
 
 function buildRewritePack(extraction) {
-  const audience = inferAudience(`${extraction.heroHeadline} ${extraction.heroSupport}`);
-  const product = inferProductType(`${extraction.heroHeadline} ${extraction.description}`);
-  const outcome = inferOutcome(extraction.heroHeadline, extraction.description);
+  const context = buildBusinessContext(extraction);
+  const audience = context.audience;
+  const product = context.productCategory || inferProductType(`${extraction.heroHeadline} ${extraction.description}`);
+  const outcome = context.outcome;
+  if (context.preserveHeroDirection && context.hero) {
+    return {
+      headlines: [
+        context.hero,
+        `${context.hero} for ${audience}`,
+        `${context.hero}, with ${product} context up front`,
+      ],
+      subheadlines: [
+        buildContextualSupportLine(context),
+        `Show how the ${product} helps ${audience} ${outcome} without losing the current headline voice.`,
+      ],
+      ctas: [
+        `Start building`,
+        `See ${product} examples`,
+        `Watch it in action`,
+        `Try it free`,
+        `See pricing`,
+      ],
+    };
+  }
   return {
     headlines: [
       `${capitalize(product)} for ${audience}`,
