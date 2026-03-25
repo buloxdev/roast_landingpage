@@ -199,6 +199,10 @@
     if (window.ROAST_API_BASE_URL) {
       return String(window.ROAST_API_BASE_URL).replace(/\/+$/, "");
     }
+    const host = window.location.hostname || "";
+    if (host && host !== "localhost" && host !== "127.0.0.1") {
+      return "https://roast-landingpage-api.onrender.com";
+    }
     return "/api";
   }
 
@@ -222,6 +226,14 @@
       title: "The page took too long to load",
       message:
         "We could not finish reading the page before the timeout. Heavy scripts, redirects, or third-party widgets may be blocking analysis.",
+      primaryLabel: "Retry roast",
+      secondaryLabel: "Try another URL",
+    },
+    fetchFailed: {
+      kind: "analysis",
+      title: "We could not read that page cleanly",
+      message:
+        "The page responded, but we could not extract a usable marketing page from it. This usually means redirects, unusual page responses, or a site setup that blocks automated reading.",
       primaryLabel: "Retry roast",
       secondaryLabel: "Try another URL",
     },
@@ -373,6 +385,7 @@
   }
 
   const state = {
+    route: "home",
     screen: "home",
     form: {
       url: "https://example.com/sample",
@@ -403,6 +416,12 @@
   const fixtureCache = Object.create(null);
   const fixturePromises = Object.create(null);
   const HISTORY_STORAGE_KEY = "roast-history-v1";
+  const PREFERENCES_STORAGE_KEY = "roast-preferences-v1";
+  const APP_ROUTES = {
+    home: "/",
+    dashboard: "/dashboard",
+    settings: "/settings",
+  };
 
   function escapeHtml(value) {
     return String(value)
@@ -488,6 +507,58 @@
     const nextHistory = [entry].concat(deduped).slice(0, 3);
     state.roastHistory = nextHistory;
     saveRoastHistory(nextHistory);
+  }
+
+  function loadPreferences() {
+    try {
+      const raw = window.localStorage.getItem(PREFERENCES_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return null;
+      return {
+        mode: MODE_OPTIONS.some((option) => option.value === parsed.mode) ? parsed.mode : "",
+        style: STYLE_OPTIONS.some((option) => option.value === parsed.style) ? parsed.style : "",
+      };
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function savePreferences() {
+    try {
+      window.localStorage.setItem(
+        PREFERENCES_STORAGE_KEY,
+        JSON.stringify({
+          mode: state.form.mode,
+          style: state.form.style,
+        })
+      );
+    } catch (_error) {
+      return;
+    }
+  }
+
+  function getRouteFromPath(pathname) {
+    const path = String(pathname || "/").replace(/\/+$/, "") || "/";
+    if (path === APP_ROUTES.dashboard) return "dashboard";
+    if (path === APP_ROUTES.settings) return "settings";
+    return "home";
+  }
+
+  function getRoutePath(route) {
+    return APP_ROUTES[route] || APP_ROUTES.home;
+  }
+
+  function syncRoute(route, options) {
+    const replace = Boolean(options && options.replace);
+    const nextRoute = APP_ROUTES[route] ? route : "home";
+    const nextPath = getRoutePath(nextRoute);
+    state.route = nextRoute;
+    if (window.location.pathname !== nextPath) {
+      const method = replace ? "replaceState" : "pushState";
+      window.history[method]({}, "", nextPath);
+    }
+    window.scrollTo({ top: 0, behavior: "auto" });
   }
 
   function getModeMeta(modeValue) {
@@ -713,8 +784,14 @@
     ) {
       return getErrorStateFromTemplate(ERROR_COPY.redirected);
     }
-    if (code === "FETCH_FAILED") {
+    if (
+      code === "FETCH_FAILED" &&
+      apiErrorContains(error, ["timed out", "timeout", "took too long"])
+    ) {
       return getErrorStateFromTemplate(ERROR_COPY.timeout);
+    }
+    if (code === "FETCH_FAILED") {
+      return getErrorStateFromTemplate(ERROR_COPY.fetchFailed);
     }
     if (code === "RATE_LIMITED") return getErrorStateFromTemplate(ERROR_COPY.rateLimited);
     if (code === "ANALYSIS_FAILED") return getErrorStateFromTemplate(ERROR_COPY.analysisFailed);
@@ -1120,17 +1197,37 @@
   }
 
   function renderTopbar(meta) {
+    const route = state.route || "home";
     const mode = getModeMeta(state.form.mode);
     const style = getStyleMeta(state.form.style);
     const sourceBadge = getRunSourceBadge();
     const right = meta && meta.rightHtml ? meta.rightHtml : "";
     const showUrl = !(meta && meta.hideUrl) && state.form.url;
+    const showNav = !(meta && meta.hideNav);
 
     return `
       <header class="topbar">
-        <div class="brand">
-          <div class="brand-mark">RM</div>
-          <div>Roast My Landing Page</div>
+        <div class="topbar-left">
+          <button class="brand-link" type="button" data-route="home" aria-label="Go to roast workspace">
+            <span class="brand">
+              <span class="brand-mark">RM</span>
+              <span>
+                <span class="brand-text-full">Roast My Landing Page</span>
+                <span class="brand-text-compact">Roast</span>
+              </span>
+            </span>
+          </button>
+          ${
+            showNav
+              ? `
+            <nav class="topbar-nav" aria-label="Primary">
+              <button class="topbar-nav-link ${route === "home" ? "is-active" : ""}" type="button" data-route="home" aria-current="${route === "home" ? "page" : "false"}">Roast</button>
+              <button class="topbar-nav-link ${route === "dashboard" ? "is-active" : ""}" type="button" data-route="dashboard" aria-current="${route === "dashboard" ? "page" : "false"}">Dashboard</button>
+              <button class="topbar-nav-link ${route === "settings" ? "is-active" : ""}" type="button" data-route="settings" aria-current="${route === "settings" ? "page" : "false"}">Settings</button>
+            </nav>
+          `
+              : ""
+          }
         </div>
         <div class="topbar-right">
           ${showUrl ? `<div class="url-pill topbar-url">${escapeHtml(state.form.url)}</div>` : ""}
@@ -1149,10 +1246,32 @@
     `;
   }
 
+  function renderPreferenceCards(options, activeValue, key) {
+    return options
+      .map((option) => {
+        const active = option.value === activeValue;
+        const dataAttr = key === "mode" ? "data-mode-value" : "data-style-value";
+        return `
+          <button
+            type="button"
+            class="last:col-span-2 rounded-2xl border px-3 py-2.5 text-left transition duration-150 lg:last:col-span-1 sm:px-[13px] sm:py-3 ${active ? "border-[rgba(255,90,54,0.5)] bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.14),transparent_45%),linear-gradient(180deg,#fff8f0,#ffebdd)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35),0_14px_24px_rgba(255,90,54,0.14)]" : "border-[#dcb9a0] bg-[linear-gradient(180deg,#fffdf9,#f7ece2)] hover:-translate-y-px hover:border-[rgba(255,90,54,0.36)] hover:shadow-[0_12px_22px_rgba(28,17,22,0.08)]"}"
+            role="radio"
+            aria-checked="${active ? "true" : "false"}"
+            ${dataAttr}="${escapeHtml(option.value)}"
+          >
+            <span class="block font-bold ${active ? "text-[#8e2d14]" : "text-[#171119]"}">${escapeHtml(option.label)}</span>
+            <small class="mt-1 hidden text-[11px] leading-[1.35] text-[#6d5448] sm:block">${escapeHtml(option.hint)}</small>
+          </button>
+        `;
+      })
+      .join("");
+  }
+
   function renderHome() {
     const mode = getModeMeta(state.form.mode);
     const style = getStyleMeta(state.form.style);
     const hasUrlError = Boolean(state.formError);
+    const hasUrlValue = Boolean(String(state.form.url || "").trim());
     const historyMarkup = state.roastHistory.length
       ? `
         <section class="history-card">
@@ -1185,75 +1304,62 @@
       `
       : "";
     return `
-      <div class="shell">
+      <div class="shell shell-home">
         ${renderTopbar({
           hideUrl: true,
           rightHtml: `<button class="ghost-btn" type="button" data-action="use-example">Use sample URL</button>`,
         })}
 
-        <div class="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] xl:items-start">
-          <section class="relative overflow-hidden rounded-[28px] border border-[rgba(255,241,232,0.12)] bg-[linear-gradient(135deg,#17111f_0%,#241521_44%,#4f1d17_100%)] px-5 py-6 text-[#fff4ec] shadow-[0_32px_90px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.05)] sm:px-8 sm:py-9">
-            <div class="pointer-events-none absolute -right-[10%] -bottom-[22%] h-[340px] w-[340px] rounded-full bg-[radial-gradient(circle,rgba(15,157,122,0.28),transparent_72%)]"></div>
-            <div class="pointer-events-none absolute right-[18px] top-[18px] h-28 w-28 rotate-12 rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,248,240,0.16),rgba(255,248,240,0.04))]"></div>
-            <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(255,196,107,0.28),transparent_24%),radial-gradient(circle_at_88%_14%,rgba(255,90,54,0.44),transparent_28%),radial-gradient(circle_at_76%_86%,rgba(15,157,122,0.3),transparent_30%)]"></div>
-            <div class="relative">
-            <div class="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70 sm:text-xs">For designers, founders, and homepage obsessives</div>
-            <h1 class="max-w-[7.5ch] font-display text-[clamp(2.125rem,8vw,4.75rem)] font-black leading-[0.92] tracking-[-0.055em] text-white">Paste the link. Watch it cook.</h1>
-            <p class="mt-3 max-w-[44ch] text-[17px] leading-8 text-white/80 sm:text-[19px]">
-              A conversion critique that gets to the point fast: what is muddy, what is costing clarity, and what to rewrite next.
-            </p>
+        <section class="home-hero">
+          <div class="home-hero-backdrop" aria-hidden="true">
+            <div class="home-hero-orb home-hero-orb-one"></div>
+            <div class="home-hero-orb home-hero-orb-two"></div>
+            <div class="home-hero-grid"></div>
+          </div>
+          <div class="home-hero-layout">
+            <section class="home-hero-copy">
+              <div class="home-kicker">For designers, founders, and homepage obsessives</div>
+              <p class="home-brand">Roast My Landing Page</p>
+              <h1>Paste the link. Leave with the fix that matters.</h1>
+              <p class="home-lede">
+                A sharper conversion critique for landing pages that already look decent but still make buyers hesitate.
+              </p>
 
-            <div class="mt-5 flex flex-wrap gap-2">
-              <div class="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs tracking-[0.03em] text-white/90">Fast verdict</div>
-              <div class="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs tracking-[0.03em] text-white/90">Prioritized fixes</div>
-              <div class="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs tracking-[0.03em] text-white/90">Ready-to-use rewrites</div>
-            </div>
+              <div class="home-proof-strip" aria-label="Product outcomes">
+                <span>Fast verdict</span>
+                <span>Ranked blockers</span>
+                <span>Rewrite pack</span>
+              </div>
 
-            <div class="mt-5 grid gap-3">
-              <div class="rounded-[20px] border border-white/10 bg-white/10 p-4 backdrop-blur-xl">
-                <div class="mb-1 text-[11px] uppercase tracking-[0.08em] text-white/70">Calls out</div>
-                <div class="text-lg font-bold leading-[1.28] text-white">Vague headlines, weak CTAs, thin proof, and muddy differentiation</div>
+              <div class="home-story-grid">
+                <article class="home-story-panel">
+                  <span>Calls out</span>
+                  <strong>Vague headlines, weak CTAs, thin proof, and all the small decisions that make a page feel less convincing than it looks.</strong>
+                </article>
+                <article class="home-story-panel">
+                  <span>Hands back</span>
+                  <strong>A prioritized roast report, fresh copy directions, and the one move worth shipping first.</strong>
+                </article>
               </div>
-              <div class="rounded-[20px] border border-white/10 bg-white/10 p-4 backdrop-blur-xl">
-                <div class="mb-1 text-[11px] uppercase tracking-[0.08em] text-white/70">Hands back</div>
-                <div class="text-lg font-bold leading-[1.28] text-white">A ranked plan, better copy, and the strongest next move to ship first</div>
-              </div>
-              <div class="rounded-[20px] border border-white/10 bg-white/10 p-4 backdrop-blur-xl">
-                <div class="mb-1 text-[11px] uppercase tracking-[0.08em] text-white/70">Best on</div>
-                <div class="text-lg font-bold leading-[1.28] text-white">Launch pages, SaaS homepages, redesigns, and "why is this not converting?" moments</div>
-              </div>
-            </div>
 
-            <div class="mt-5 rounded-[24px] border border-white/10 bg-white/10 p-4 backdrop-blur-xl">
-              <div class="flex items-center justify-between gap-3">
+              <div class="home-signal-band">
                 <div>
-                  <div class="mb-1 text-[11px] uppercase tracking-[0.09em] text-white/70">Example output</div>
-                  <strong class="block text-[22px] leading-[1.02] tracking-[-0.03em] text-white">Fix the hero first</strong>
+                  <span>Sample verdict</span>
+                  <strong>Fix the hero first</strong>
                 </div>
-                <div class="grid h-[68px] w-[68px] place-items-center rounded-[20px] border border-white/15 bg-white/10 text-[28px] font-extrabold text-white">56</div>
+                <div class="home-signal-score">56</div>
+                <p>The page looks polished, but the value prop still asks visitors to do the interpreting.</p>
               </div>
-              <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                <div class="rounded-[18px] border border-white/10 bg-white/10 p-3">
-                  <span class="mb-1 block text-[11px] uppercase tracking-[0.08em] text-white/70">Diagnosis</span>
-                  <p class="m-0 leading-6 text-white/95">The page looks polished, but the value prop is still making visitors guess.</p>
-                </div>
-                <div class="rounded-[18px] border border-white/10 bg-white/10 p-3">
-                  <span class="mb-1 block text-[11px] uppercase tracking-[0.08em] text-white/70">Rewrite direction</span>
-                  <p class="m-0 leading-6 text-white/95">Name the product, the audience, and the outcome in one breath.</p>
-                </div>
-              </div>
-            </div>
-            </div>
-          </section>
+            </section>
 
-          <section class="rounded-[28px] border border-[#dfbca2] bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.12),transparent_32%),linear-gradient(180deg,rgba(255,250,245,0.98),rgba(248,236,224,0.97))] p-5 shadow-[0_28px_76px_rgba(14,8,10,0.2),inset_0_1px_0_rgba(255,255,255,0.4)] sm:p-6">
+            <section class="home-workbench">
             <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div class="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a53d21] sm:text-xs">Run a roast</div>
                 <h2 class="m-0 text-[clamp(1.75rem,2.6vw,2.375rem)] font-black leading-[0.98] tracking-[-0.04em] text-[#171119]">Drop in the URL</h2>
                 <p class="mt-2 max-w-[34ch] text-[15px] leading-7 text-[#6d5448]">Choose the tone, run the scan, then jump straight to the fix with the biggest conversion upside.</p>
               </div>
-              <div class="grid gap-2 sm:justify-items-end">
+              <div class="hidden gap-2 sm:grid sm:justify-items-end">
                 <div class="mode-pill mode-pill-soft">${escapeHtml(mode.hint)}</div>
                 <div class="mode-pill mode-pill-soft">${escapeHtml(style.hint)}</div>
               </div>
@@ -1282,49 +1388,21 @@
 
               <div class="flex flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
                 <div class="text-[13px] font-semibold text-[#171119]">Roast mode</div>
-                <div class="text-xs leading-[1.35] text-[#6d5448]">Default is tuned to give the clearest, sharpest signal.</div>
+                <div class="hidden text-xs leading-[1.35] text-[#6d5448] sm:block">Default is tuned to give the clearest, sharpest signal.</div>
               </div>
-              <div class="grid gap-2 lg:grid-cols-3" role="tablist" aria-label="Roast mode">
-                ${MODE_OPTIONS.map((option) => {
-                  const active = option.value === state.form.mode;
-                  return `
-                    <button
-                      type="button"
-                      class="rounded-2xl border px-[13px] py-3 text-left transition duration-150 ${active ? "border-[rgba(255,90,54,0.5)] bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.14),transparent_45%),linear-gradient(180deg,#fff8f0,#ffebdd)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35),0_14px_24px_rgba(255,90,54,0.14)]" : "border-[#dcb9a0] bg-[linear-gradient(180deg,#fffdf9,#f7ece2)] hover:-translate-y-px hover:border-[rgba(255,90,54,0.36)] hover:shadow-[0_12px_22px_rgba(28,17,22,0.08)]"}"
-                      role="tab"
-                      aria-selected="${active ? "true" : "false"}"
-                      data-mode-value="${escapeHtml(option.value)}"
-                    >
-                      <span class="block font-bold ${active ? "text-[#8e2d14]" : "text-[#171119]"}">${escapeHtml(option.label)}</span>
-                      <small class="mt-1 block text-[11px] leading-[1.35] text-[#6d5448]">${escapeHtml(option.hint)}</small>
-                    </button>
-                  `;
-                }).join("")}
+              <div class="grid grid-cols-2 gap-2 lg:grid-cols-3" role="radiogroup" aria-label="Roast mode">
+                ${renderPreferenceCards(MODE_OPTIONS, state.form.mode, "mode")}
               </div>
 
               <div class="flex flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
                 <div class="text-[13px] font-semibold text-[#171119]">Roast style</div>
-                <div class="text-xs leading-[1.35] text-[#6d5448]">Flavor only. The recommendations stay the same.</div>
+                <div class="hidden text-xs leading-[1.35] text-[#6d5448] sm:block">Flavor only. The recommendations stay the same.</div>
               </div>
-              <div class="grid gap-2 lg:grid-cols-3" role="tablist" aria-label="Roast style">
-                ${STYLE_OPTIONS.map((option) => {
-                  const active = option.value === state.form.style;
-                  return `
-                    <button
-                      type="button"
-                      class="rounded-2xl border px-[13px] py-3 text-left transition duration-150 ${active ? "border-[rgba(255,90,54,0.5)] bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.14),transparent_45%),linear-gradient(180deg,#fff8f0,#ffebdd)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35),0_14px_24px_rgba(255,90,54,0.14)]" : "border-[#dcb9a0] bg-[linear-gradient(180deg,#fffdf9,#f7ece2)] hover:-translate-y-px hover:border-[rgba(255,90,54,0.36)] hover:shadow-[0_12px_22px_rgba(28,17,22,0.08)]"}"
-                      role="tab"
-                      aria-selected="${active ? "true" : "false"}"
-                      data-style-value="${escapeHtml(option.value)}"
-                    >
-                      <span class="block font-bold ${active ? "text-[#8e2d14]" : "text-[#171119]"}">${escapeHtml(option.label)}</span>
-                      <small class="mt-1 block text-[11px] leading-[1.35] text-[#6d5448]">${escapeHtml(option.hint)}</small>
-                    </button>
-                  `;
-                }).join("")}
+              <div class="grid grid-cols-2 gap-2 lg:grid-cols-3" role="radiogroup" aria-label="Roast style">
+                ${renderPreferenceCards(STYLE_OPTIONS, state.form.style, "style")}
               </div>
 
-              <button class="primary-btn primary-btn-lg mt-1" type="submit">Roast My Landing Page</button>
+              <button class="primary-btn primary-btn-lg sm:mt-1" type="submit" ${hasUrlValue ? "" : "disabled aria-disabled=\"true\""}>Roast My Landing Page</button>
             </form>
 
             <div class="mt-[18px] rounded-2xl border border-[#dbb79d] bg-[linear-gradient(180deg,#fff7ef,#f8e9db)] px-4 py-[14px] text-[13px] leading-[1.4] text-[#6b5347]">
@@ -1338,8 +1416,9 @@
             </div>
 
             ${historyMarkup}
-          </section>
-        </div>
+            </section>
+          </div>
+        </section>
       </div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     `;
@@ -1812,10 +1891,244 @@
     `;
   }
 
+  function renderDashboard() {
+    const latestEntry = state.roastHistory[0] || null;
+    const latestMode = latestEntry ? getModeMeta(latestEntry.mode).label : getModeMeta(state.form.mode).label;
+    const latestStyle = latestEntry ? getStyleMeta(latestEntry.style).label : getStyleMeta(state.form.style).label;
+    const averageScore = state.roastHistory.length
+      ? Math.round(
+          state.roastHistory.reduce((total, entry) => total + (Number(entry.score) || 0), 0) / state.roastHistory.length
+        )
+      : 0;
+
+    return `
+      <div class="shell">
+        ${renderTopbar({
+          hideUrl: true,
+          rightHtml: `<button class="primary-btn" type="button" data-action="back-home">Start a roast</button>`,
+        })}
+
+        <section class="summary-card bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.12),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(15,157,122,0.08),transparent_22%),linear-gradient(180deg,rgba(255,255,252,0.99),rgba(255,248,241,0.98))] p-[18px] sm:p-7">
+          <div class="eyebrow">Dashboard</div>
+          <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.9fr)]">
+            <div>
+              <h1 class="m-0 max-w-[13ch] text-[clamp(1.875rem,6vw,3.25rem)] font-black leading-[0.96] tracking-[-0.045em] text-[#171119]">Keep the latest roasts, defaults, and next actions in one place.</h1>
+              <p class="mt-3 max-w-[56ch] text-[16px] leading-[1.5] text-[#6d5448]">This view picks up from your recent runs so you can reopen a report, compare scores, or jump straight back into the roast flow.</p>
+              <div class="mt-5 grid gap-3 sm:grid-cols-3">
+                <div class="rounded-[18px] border border-[#dcc0aa] bg-[#ffffff] p-4 shadow-[0_14px_28px_rgba(20,14,18,0.05)]">
+                  <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a3d21]">Saved roasts</div>
+                  <strong class="mt-2 block text-[34px] leading-none text-[#171119]">${escapeHtml(String(state.roastHistory.length))}</strong>
+                  <p class="mt-2 mb-0 text-[13px] leading-[1.45] text-[#6d5448]">${state.roastHistory.length ? "Recent reports stay one tap away." : "Your next completed roast will show up here."}</p>
+                </div>
+                <div class="rounded-[18px] border border-[#dcc0aa] bg-[#ffffff] p-4 shadow-[0_14px_28px_rgba(20,14,18,0.05)]">
+                  <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a3d21]">Average score</div>
+                  <strong class="mt-2 block text-[34px] leading-none text-[#171119]">${escapeHtml(state.roastHistory.length ? String(averageScore) : "--")}</strong>
+                  <p class="mt-2 mb-0 text-[13px] leading-[1.45] text-[#6d5448]">${state.roastHistory.length ? "A quick pulse on the last few pages you reviewed." : "Run a few roasts to start benchmarking."}</p>
+                </div>
+                <div class="rounded-[18px] border border-[#dcc0aa] bg-[#ffffff] p-4 shadow-[0_14px_28px_rgba(20,14,18,0.05)]">
+                  <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a3d21]">Current defaults</div>
+                  <strong class="mt-2 block text-[20px] leading-[1.15] text-[#171119]">${escapeHtml(getModeMeta(state.form.mode).label)}</strong>
+                  <p class="mt-1 mb-0 text-[13px] leading-[1.45] text-[#6d5448]">${escapeHtml(getStyleMeta(state.form.style).label)}</p>
+                </div>
+              </div>
+            </div>
+            <div class="rounded-[20px] border border-[rgba(255,237,225,0.14)] bg-[linear-gradient(180deg,rgba(29,19,27,0.98),rgba(19,14,24,0.96))] p-5 text-[#fff4ec] shadow-[0_18px_34px_rgba(11,8,14,0.22)]">
+              <div class="eyebrow text-white/60">Latest snapshot</div>
+              ${
+                latestEntry
+                  ? `
+                <h2 class="m-0 text-[26px] leading-[1.02] tracking-[-0.03em] text-white">${escapeHtml(latestEntry.title || "Recent roast")}</h2>
+                <p class="mt-3 mb-0 text-[14px] leading-[1.5] text-white/76">${escapeHtml(latestEntry.url || "")}</p>
+                <div class="mt-4 grid gap-2 text-[13px] leading-[1.45] text-white/80">
+                  <div><strong class="text-white">Score:</strong> ${escapeHtml(String(latestEntry.score || 0))}</div>
+                  <div><strong class="text-white">Mode:</strong> ${escapeHtml(latestMode)}</div>
+                  <div><strong class="text-white">Style:</strong> ${escapeHtml(latestStyle)}</div>
+                </div>
+                <div class="mt-4 grid gap-2">
+                  <button class="primary-btn rail-primary-btn" type="button" data-history-index="0">Open latest roast</button>
+                  <button class="ghost-btn ghost-btn-dark" type="button" data-route="settings">Adjust defaults</button>
+                </div>
+              `
+                  : `
+                <h2 class="m-0 text-[26px] leading-[1.02] tracking-[-0.03em] text-white">No saved roasts yet</h2>
+                <p class="mt-3 mb-0 text-[14px] leading-[1.5] text-white/76">Run your first roast and this dashboard will start showing quick reopen links, score trends, and preference shortcuts.</p>
+                <div class="mt-4 grid gap-2">
+                  <button class="primary-btn rail-primary-btn" type="button" data-action="back-home">Start with a URL</button>
+                  <button class="ghost-btn ghost-btn-dark" type="button" data-action="use-example">Use sample URL</button>
+                </div>
+              `
+              }
+            </div>
+          </div>
+        </section>
+
+        <div class="layout">
+          <main class="stack">
+            <section class="section">
+              <div class="mb-[14px] flex flex-col items-start gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <div>
+                  <h2>Recent roasts</h2>
+                  <p class="section-subtitle">Open a saved report to keep working without rerunning the analysis.</p>
+                </div>
+                <div class="max-w-[260px] text-[13px] leading-[1.45] text-[#6d5448]">Saved reports keep the original mode, style, and rendered result data so you can review them quickly.</div>
+              </div>
+              ${
+                state.roastHistory.length
+                  ? `
+                <div class="history-list">
+                  ${state.roastHistory
+                    .map(
+                      (entry, index) => `
+                        <button type="button" class="history-item" data-history-index="${index}">
+                          <div class="history-item-top">
+                            <strong>${escapeHtml(entry.title || "Recent roast")}</strong>
+                            <span>${escapeHtml(formatHistoryTime(entry.savedAt))}</span>
+                          </div>
+                          <div class="history-item-url">${escapeHtml(entry.url || "")}</div>
+                          <div class="history-item-meta">
+                            <span>${escapeHtml(`Score ${entry.score || 0}`)}</span>
+                            <span>${escapeHtml(getModeMeta(entry.mode).label)}</span>
+                            <span>${escapeHtml(getStyleMeta(entry.style).label)}</span>
+                          </div>
+                        </button>
+                      `
+                    )
+                    .join("")}
+                </div>
+              `
+                  : `
+                <div class="rounded-[18px] border border-dashed border-[#d9b8a1] bg-[linear-gradient(180deg,#fffdf9,#fbf0e5)] p-5">
+                  <h3 class="m-0 text-[24px] leading-[1.05] tracking-[-0.03em]">No history yet</h3>
+                  <p class="mt-2 mb-0 max-w-[58ch] text-[14px] leading-[1.5] text-[#6d5448]">Finish one roast and the dashboard will start acting like a lightweight workspace instead of a dead end.</p>
+                </div>
+              `
+              }
+            </section>
+          </main>
+
+          <aside class="rail" aria-label="Dashboard actions">
+            <section class="rail-card">
+              <h3>Quick actions</h3>
+              <div class="action-list">
+                <button class="action-btn" type="button" data-action="back-home">Roast another page</button>
+                <button class="action-btn" type="button" data-action="use-example">Load sample URL</button>
+                <button class="action-btn" type="button" data-route="settings">Open settings</button>
+              </div>
+            </section>
+
+            <section class="rail-card">
+              <div class="eyebrow">Defaults</div>
+              <h3>Current roast voice</h3>
+              <p>${escapeHtml(getModeMeta(state.form.mode).label)} with an ${escapeHtml(getStyleMeta(state.form.style).label.toLowerCase())} delivery. Change both in Settings when you want a different default.</p>
+            </section>
+          </aside>
+        </div>
+      </div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    `;
+  }
+
+  function renderSettings() {
+    const hasHistory = state.roastHistory.length > 0;
+
+    return `
+      <div class="shell">
+        ${renderTopbar({
+          hideUrl: true,
+          rightHtml: `<button class="primary-btn" type="button" data-route="dashboard">Open dashboard</button>`,
+        })}
+
+        <section class="summary-card bg-[radial-gradient(circle_at_top_right,rgba(255,90,54,0.12),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(15,157,122,0.08),transparent_22%),linear-gradient(180deg,rgba(255,255,252,0.99),rgba(255,248,241,0.98))] p-[18px] sm:p-7">
+          <div class="eyebrow">Settings</div>
+          <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.9fr)]">
+            <div>
+              <h1 class="m-0 max-w-[13ch] text-[clamp(1.875rem,6vw,3.25rem)] font-black leading-[0.96] tracking-[-0.045em] text-[#171119]">Set the default roast voice once, then reuse it everywhere.</h1>
+              <p class="mt-3 max-w-[56ch] text-[16px] leading-[1.5] text-[#6d5448]">These preferences apply to new roasts, dashboard shortcuts, and the restored home form. Changes save immediately.</p>
+            </div>
+            <div class="rounded-[20px] border border-[rgba(255,237,225,0.14)] bg-[linear-gradient(180deg,rgba(29,19,27,0.98),rgba(19,14,24,0.96))] p-5 text-[#fff4ec] shadow-[0_18px_34px_rgba(11,8,14,0.22)]">
+              <div class="eyebrow text-white/60">Current setup</div>
+              <div class="grid gap-3">
+                <div>
+                  <div class="text-[12px] uppercase tracking-[0.12em] text-white/60">Mode</div>
+                  <strong class="mt-1 block text-[26px] leading-[1.02] text-white">${escapeHtml(getModeMeta(state.form.mode).label)}</strong>
+                </div>
+                <div>
+                  <div class="text-[12px] uppercase tracking-[0.12em] text-white/60">Style</div>
+                  <strong class="mt-1 block text-[22px] leading-[1.08] text-white">${escapeHtml(getStyleMeta(state.form.style).label)}</strong>
+                </div>
+                <p class="m-0 text-[13px] leading-[1.45] text-white/72">Your default combo updates the dashboard summary and preselects the home form.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="layout">
+          <main class="stack">
+            <section class="section">
+              <div class="mb-[14px]">
+                <h2>Default roast mode</h2>
+                <p class="section-subtitle">Choose the overall level of bluntness and prioritization.</p>
+              </div>
+              <div class="grid grid-cols-2 gap-2 lg:grid-cols-3" role="radiogroup" aria-label="Default roast mode">
+                ${renderPreferenceCards(MODE_OPTIONS, state.form.mode, "mode")}
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="mb-[14px]">
+                <h2>Default roast style</h2>
+                <p class="section-subtitle">Choose the voice the output should lean toward by default.</p>
+              </div>
+              <div class="grid grid-cols-2 gap-2 lg:grid-cols-3" role="radiogroup" aria-label="Default roast style">
+                ${renderPreferenceCards(STYLE_OPTIONS, state.form.style, "style")}
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="mb-[14px] flex flex-col items-start gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <div>
+                  <h2>History management</h2>
+                  <p class="section-subtitle">Keep the recent roast shelf tidy when you are testing a lot of fixtures.</p>
+                </div>
+                <button class="rounded-xl border border-[#dbb79d] bg-[#fffdf9] px-3 py-[11px] font-semibold text-[#2f2320] transition duration-150 hover:-translate-y-px hover:border-[rgba(255,90,54,0.34)] hover:shadow-[0_10px_16px_rgba(24,17,25,0.08)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none" type="button" data-action="clear-history" ${hasHistory ? "" : "disabled aria-disabled=\"true\""}>Clear roast history</button>
+              </div>
+              <div class="rounded-[18px] border border-[#dcc0aa] bg-[#ffffff] p-4 shadow-[0_14px_28px_rgba(20,14,18,0.05)]">
+                <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a3d21]">Saved reports</div>
+                <p class="mt-2 mb-0 text-[14px] leading-[1.5] text-[#6d5448]">${hasHistory ? `${state.roastHistory.length} saved roast${state.roastHistory.length === 1 ? "" : "s"} currently available from the dashboard.` : "No saved roasts yet. Run a roast first if you want to test the dashboard reopen flow."}</p>
+              </div>
+            </section>
+          </main>
+
+          <aside class="rail" aria-label="Settings actions">
+            <section class="rail-card">
+              <h3>Next steps</h3>
+              <div class="action-list">
+                <button class="action-btn" type="button" data-action="back-home">Back to roast flow</button>
+                <button class="action-btn" type="button" data-route="dashboard">Open dashboard</button>
+                <button class="action-btn" type="button" data-action="use-example">Load sample URL</button>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    `;
+  }
+
   function render() {
     const app = getAppRoot();
     if (!app) {
       throw new Error('Missing #app mount node in index.html');
+    }
+
+    if (state.route === "dashboard") {
+      app.innerHTML = renderDashboard();
+      return;
+    }
+
+    if (state.route === "settings") {
+      app.innerHTML = renderSettings();
+      return;
     }
 
     if (state.screen === "home") {
@@ -1938,6 +2251,7 @@
       fallbackReason: `Loaded local ${selectedScenario} example.`,
       roastId: "",
     };
+    syncRoute("home");
     state.screen = "results";
     persistCurrentRoastToHistory();
     render();
@@ -1961,6 +2275,7 @@
     };
     state.progress = 0;
     state.completedSteps = 0;
+    syncRoute("home");
     render();
   }
 
@@ -2107,6 +2422,7 @@
     state.resultMeta.roastId = (runOutput && runOutput.roastId) || "";
     state.resultMeta.provider = (runOutput && runOutput.provider) || "";
     state.resultMeta.providerModel = (runOutput && runOutput.providerModel) || "";
+    syncRoute("home");
     state.screen = "results";
     state.analyzing = false;
     state.analyzingSlow = false;
@@ -2116,6 +2432,14 @@
 
   function bindEvents() {
     document.addEventListener("click", (event) => {
+      const routeTarget = event.target.closest("[data-route]");
+      if (routeTarget) {
+        const route = routeTarget.getAttribute("data-route") || "home";
+        syncRoute(route);
+        render();
+        return;
+      }
+
       const copyTarget = event.target.closest("[data-copy]");
       if (copyTarget) {
         copyText(copyTarget.getAttribute("data-copy"));
@@ -2125,14 +2449,16 @@
       const modeTarget = event.target.closest("[data-mode-value]");
       if (modeTarget) {
         state.form.mode = modeTarget.getAttribute("data-mode-value") || state.form.mode;
-        if (state.screen === "home") render();
+        savePreferences();
+        if (state.route !== "home" || state.screen === "home") render();
         return;
       }
 
       const styleTarget = event.target.closest("[data-style-value]");
       if (styleTarget) {
         state.form.style = styleTarget.getAttribute("data-style-value") || state.form.style;
-        if (state.screen === "home") render();
+        savePreferences();
+        if (state.route !== "home" || state.screen === "home") render();
         return;
       }
 
@@ -2150,6 +2476,7 @@
         state.errorState = null;
         state.formError = "";
         state.analyzing = false;
+        syncRoute("home");
         state.screen = "results";
         render();
         return;
@@ -2171,13 +2498,25 @@
       if (action === "use-example") {
         state.form.url = getExampleUrlForScenario("sample");
         state.formError = "";
-        if (state.screen === "home") render();
+        syncRoute("home");
+        state.screen = "home";
+        render();
         return;
       }
 
       if (action === "view-example-results") {
         const scenario = actionTarget.getAttribute("data-example-scenario") || "sample";
         loadExampleResults(scenario);
+        return;
+      }
+
+      if (action === "clear-history") {
+        state.roastHistory = [];
+        saveRoastHistory([]);
+        if (state.route === "settings" || state.route === "dashboard" || state.screen === "home") {
+          render();
+        }
+        showToast("History cleared");
       }
     });
 
@@ -2206,10 +2545,21 @@
 
   function bootstrap() {
     state.roastHistory = loadRoastHistory();
+    const preferences = loadPreferences();
+    if (preferences && preferences.mode) state.form.mode = preferences.mode;
+    if (preferences && preferences.style) state.form.style = preferences.style;
+    state.route = getRouteFromPath(window.location.pathname);
+    if (window.location.pathname !== getRoutePath(state.route)) {
+      syncRoute(state.route, { replace: true });
+    }
     render();
     bindEvents();
+    window.addEventListener("popstate", function () {
+      state.route = getRouteFromPath(window.location.pathname);
+      render();
+    });
     const exampleScenario = getExampleScenarioFromQuery();
-    if (exampleScenario) {
+    if (state.route === "home" && exampleScenario) {
       loadExampleResults(exampleScenario);
     }
   }
