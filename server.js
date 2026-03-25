@@ -731,6 +731,13 @@ function logServerInfo(scope, requestId, details = {}) {
   console.log(`[${scope}]`, JSON.stringify({ requestId, ...details }));
 }
 
+function shouldFallbackToHttp(snapshotResult) {
+  if (!snapshotResult || snapshotResult.ok) return false;
+  if (snapshotResult.code === "PAGE_BLOCKED" || snapshotResult.code === "SSRF_BLOCKED") return false;
+  if (snapshotResult.status === 401 || snapshotResult.status === 403) return false;
+  return true;
+}
+
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     let raw = "";
@@ -1033,7 +1040,17 @@ async function fetchPageSnapshot(pageUrl, requestId) {
       return renderedSnapshot;
     }
     if (renderedSnapshot && !renderedSnapshot.ok) {
-      return renderedSnapshot;
+      if (!shouldFallbackToHttp(renderedSnapshot)) {
+        return renderedSnapshot;
+      }
+      if (requestId) {
+        logServerInfo("page_snapshot_browser_fallback", requestId, {
+          url: pageUrl,
+          code: renderedSnapshot.code || "",
+          status: renderedSnapshot.status || "",
+          reason: renderedSnapshot.reason || "",
+        });
+      }
     }
   } catch (error) {
     if (requestId) {

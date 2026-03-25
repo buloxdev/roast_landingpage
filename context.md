@@ -1,6 +1,11 @@
 # Context Snapshot (Pause/Resume)
 
-Last updated: 2026-03-15 (home/results UI overhaul shipped, mobile polish added, favicon added, smoke coverage added for happy path + fallback + blocked error path)
+Last updated: 2026-03-17 (Codex context handoff skill added for future pause/resume updates; product work still resumes from the 2026-03-08 deployment/debug plan below)
+
+## Session Handoff Workflow
+- A reusable Codex skill now exists at `/Users/anthonyaguilar/.codex/skills/context-handoff/`.
+- In future sessions, invoke `Use $context-handoff` before stepping away or shutting down to refresh this file with work completed, current state, blockers, and next steps.
+- Keep the durable project background in this file, but rewrite stale next steps instead of appending noisy diary notes forever.
 
 ## What This Project Is
 `Roast My Landing Page` is a tool where users paste a landing page URL and an AI agent gives a brutal-but-useful conversion roast.
@@ -1305,3 +1310,74 @@ Run a quick end-to-end manual verification with both processes locally:
    - `page_snapshot_browser` errors
    - `page_snapshot source:"browser"` vs `source:"http"`
 5. Use that result to decide whether ingestion is finally fixed
+
+## Resume Update (2026-03-24 19:51 CDT): pass2 routing fix + FETCH_FAILED fallback fix
+
+### What was diagnosed today
+- The roast-style prompt tightening was not showing up reliably in production because the backend still had two flattening issues:
+  1. `ENABLE_OPENAI_PASS2` defaulted to off unless explicitly set to `true`
+  2. request handling still used stale style fallbacks like `sharp`
+- Result: `Observational` and `Bold` could collapse into the same visible roast even after prompt changes.
+
+### Backend fix prepared locally
+- `server.js` was updated so:
+  - pass2 defaults to enabled when an `OPENAI_API_KEY` exists
+  - style values are normalized consistently to:
+    - `observational`
+    - `deadpan`
+    - `bold`
+  - old `sharp` fallback is mapped to `observational`
+- Prompt files were tightened using the subagent debate output:
+  - `prompts/pass2-system.txt`
+  - `prompts/pass2-compose-template.txt`
+- The new prompt rules emphasize:
+  - evidence from the actual page
+  - one sharp line of personality per issue
+  - plain-language fixes
+  - personality concentrated in headline / one-liner / top issue titles / share quote
+
+### FETCH_FAILED debugging result
+- Another backend issue was found in `fetchPageSnapshot(...)`:
+  - if the browser-render path returned `FETCH_FAILED`, the server immediately gave up
+  - it did **not** try the simpler raw HTTP snapshot path afterward
+- That caused avoidable failures for real sites.
+
+### Backend fix prepared locally for FETCH_FAILED
+- `server.js` now includes a fallback policy:
+  - if browser capture fails with a hard block (`PAGE_BLOCKED`, `SSRF_BLOCKED`, 401, 403), return the failure
+  - otherwise, log `page_snapshot_browser_fallback` and continue to the HTTP snapshot path
+- This should reduce false `FETCH_FAILED` dead-ends for normal public pages.
+
+### Frontend note
+- `app.js` was also improved locally so generic `FETCH_FAILED` no longer always maps to the timeout message.
+- However, `app.js` currently has many unrelated local UI edits mixed in.
+- Safer deployment order:
+  1. ship backend-only fixes first (`server.js` + prompt files)
+  2. separately decide whether to ship the frontend error-copy change
+
+### Recommended next deploy order
+1. Commit and push:
+   - `server.js`
+   - `prompts/pass2-system.txt`
+   - `prompts/pass2-compose-template.txt`
+2. Manual deploy latest commit in Render
+3. Test one real hosted roast
+4. Compare styles again:
+   - `Observational`
+   - `Deadpan`
+   - `Bold`
+5. Check Render logs for:
+   - `compose_success`
+   - `page_snapshot_browser_fallback`
+   - `page_snapshot source:"browser"` or `source:"http"`
+
+### What to expect after the backend deploy
+- pass2 prompt changes should finally have a real chance to show up
+- style routing should no longer silently collapse back to old defaults
+- normal sites that fail browser capture may still succeed via HTTP fallback instead of hard failing immediately
+
+### If styles still look too similar after this
+- The next bottleneck is likely not style routing anymore.
+- The next likely bottleneck would be:
+  - extraction quality feeding pass2
+  - or the visible UI/fallback composition structure flattening differences
